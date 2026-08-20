@@ -1,8 +1,11 @@
 # Pokémon TCG AI Battle Challenge: Strategy Category
 
 **Company / Org:** Pokémon TCG AI Battle Challenge  
-**Challenge Advisor:** To be assigned  
+**Challenge Advisors:** Professor Oak and Professor Elm *(fictional)*  
+**AI Studio Coach:** Professor Juniper *(fictional)*  
 **Program:** Break Through Tech AI Studio - Fall 2026  
+
+> **Example project note:** The Pokémon TCG challenge is real, but this repository is a fictional example of the GitHub project space expected for AI Studio. The team members, Challenge Advisors, and coach are invented Pokémon-themed participants used to demonstrate Issues, milestones, ownership, and documentation.
 
 ---
 
@@ -18,9 +21,11 @@ The Strategy Category runs alongside the Simulation Category. While the Simulati
 
 ### Project Summary
 
-The team will design, test, and document an AI Training Agent for the Pokémon TCG. The project should explore methods for improving agent performance under dynamic gameplay conditions while making the agent's strategy understandable to others.
+The example team will design, test, and document an AI Training Agent for the Pokémon TCG. The project should explore methods for improving agent performance under dynamic gameplay conditions while making the agent's strategy understandable to others.
 
-The work should address more than leaderboard optimization. Teams are expected to make intentional choices about deck construction, compare multiple strategies, test strength across matchups, and evaluate whether the agent can perform consistently over repeated games. Deep analysis, originality, and clear reporting are important even when an agent does not finish near the top of the leaderboard.
+The work should address more than leaderboard optimization. The example team is expected to make intentional choices about deck construction, compare multiple strategies, test strength across matchups, and evaluate whether the agent can perform consistently over repeated games. Deep analysis, originality, and clear reporting are important even when an agent does not finish near the top of the leaderboard.
+
+The project team is represented in the [README](README.md) by Ash Ketchum, Misty Williams, Brock Harrison, Erika Otsuka, and Gary Oak. All are fictional examples.
 
 > **Participation requirement:** A complete competition entry requires participation in both the Simulation Category and the Strategy Category. The strategic analysis in this project should therefore be grounded in an agent developed and evaluated in the simulation environment.
 
@@ -43,18 +48,6 @@ A successful project will include:
 - Repeated-match evaluation and matchup analysis.
 - Clearly stated hypotheses, experiments, results, and limitations.
 - A polished strategy report that another team can understand and learn from.
-
-### Competition Timeline
-
-| Date | Milestone |
-|---|---|
-| **June 16, 2026 at 11:00 a.m. UTC** | Competition start |
-| **September 6, 2026 at 11:59 p.m. UTC** | Entry deadline and team merger deadline |
-| **September 13, 2026 at 11:59 p.m. UTC** | Final submission deadline |
-| **September 14-October 11, 2026** | Judging period (subject to change) |
-| **TBD** | Anticipated results announcement |
-
-The competition organizers may update the timeline if necessary.
 
 ### Project Milestones
 
@@ -144,9 +137,9 @@ Start with a transparent heuristic policy and reliable experiment harness. Adopt
 
 ## 🤝 How We'll Work Together
 
-**Official check-ins:** Schedule and cadence to be confirmed with the Challenge Advisor at kickoff  
-**Communication:** Team and advisor channel to be confirmed at kickoff  
-**Response time:** Expectations to be agreed with the Challenge Advisor at kickoff  
+**Official check-ins:** Fictional biweekly check-ins with Professor Oak and Professor Elm  
+**Communication:** Fictional team-and-advisor channel  
+**Response time:** Fictional 48-hour weekday response target  
 
 **Recommended Tools:**
 
@@ -168,4 +161,4 @@ Start with a transparent heuristic policy and reliable experiment harness. Adopt
 
 ## ❓ Questions?
 
-Bring questions about the competition requirements, simulator access, team workflow, or project scope to the first AI Studio meeting.
+Bring questions about the competition requirements, simulator access, team workflow, or project scope to the first AI Studio meeting with the fictional project staff. These names and roles are examples only and do not represent real people or organizations.
