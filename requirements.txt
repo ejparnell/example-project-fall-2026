@@ -490,6 +490,7 @@ matplotlib==3.11.2 \
     --hash=sha256:cec596316640f2b394b8f0daa0ea61a8eae82d017b620b9f202befb972a59ea4 \
     --hash=sha256:eac4b07d4e3743b172451e122ea964f72f152879d4f9adcf3f3d33e518f12ead
     # via
+    #   fall-ai-studio-pokemon
     #   gymnax
     #   seaborn
 mdurl==0.1.2 \

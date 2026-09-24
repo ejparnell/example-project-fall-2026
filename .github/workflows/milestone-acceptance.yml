@@ -19,6 +19,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.source_commit }}
+          fetch-depth: 0
       - uses: astral-sh/setup-uv@v6
         with:
           enable-cache: true
@@ -29,7 +30,11 @@ jobs:
         shell: bash
         env:
           REQUESTED_SHA: ${{ inputs.source_commit }}
-        run: test "$(git rev-parse HEAD)" = "$(git rev-parse "$REQUESTED_SHA")"
+        run: |
+          [[ "$REQUESTED_SHA" =~ ^[0-9a-fA-F]{40}$ ]]
+          git fetch origin main --no-tags
+          test "$(git rev-parse HEAD)" = "$REQUESTED_SHA"
+          git merge-base --is-ancestor "$REQUESTED_SHA" origin/main
       - name: Run 20 CABT matches and assemble the candidate bundle
         shell: bash
         env:
@@ -37,8 +42,9 @@ jobs:
         run: >-
           uv run fall-ai-studio acceptance-run
           --bundle output/september-baseline-v1
+          --log output/acceptance.log
           --matches 20
-          --commit-sha "${GITHUB_SHA}"
+          --commit-sha "$(git rev-parse HEAD)"
           --run-id "${GITHUB_RUN_ID}"
           --workflow-url "${WORKFLOW_URL}"
       - name: Verify the candidate bundle independently
@@ -51,5 +57,6 @@ jobs:
           path: |
             output/september-baseline-v1/
             output/september-baseline-v1.zip
+            output/acceptance.log
           if-no-files-found: error
           retention-days: 90

@@ -1,6 +1,8 @@
 import json
 from pathlib import Path
 
+import pytest
+
 from fall_ai_studio.battle import (
     BaselineAgent,
     EvaluationPlan,
@@ -38,6 +40,33 @@ def test_baseline_agent_forces_progress_after_eight_non_terminal_actions():
 
     assert first_eight == [[0]] * 8
     assert guarded_action == [1]
+
+
+def test_baseline_agent_never_bypasses_the_progress_guard_with_avoid_actions():
+    agent = BaselineAgent(deck=(3,) * 60)
+    play_observation = {
+        "current": {"turn": 7, "yourIndex": 0, "result": -1},
+        "select": {
+            "type": 0,
+            "minCount": 1,
+            "maxCount": 1,
+            "option": [{"type": 7}],
+        },
+    }
+    for _ in range(8):
+        agent(play_observation)
+    avoid_only_observation = {
+        **play_observation,
+        "select": {
+            "type": 0,
+            "minCount": 1,
+            "maxCount": 1,
+            "option": [{"type": 11}, {"type": 12}],
+        },
+    }
+
+    with pytest.raises(RuntimeError, match="no ATTACK or END"):
+        agent(avoid_only_observation)
 
 
 def test_agents_resolve_non_main_selections_stably():

@@ -135,6 +135,11 @@ exists locally, but Issue 3 cannot start until both are complete.
 Erika Otsuka owns the narrative work. Professor Juniper wants the environment commands to be usable
 as a teaching example. Neither is a GitHub assignee or required reviewer.
 
+### Risks and limitations
+
+The CABT dependency is large and can make first-time installation slow. Passing fast checks proves
+the scaffold is reproducible; it does not prove that a real simulator match completes.
+
 ## Issue 2 — Validate and freeze authoritative English source
 
 **Project metadata:** Misty Williams · September — Week 1 · Ready · M  
@@ -199,6 +204,11 @@ in ADR 0009.
 Misty Williams owns the narrative work. Professor Elm wants the alternate export retained for
 traceability, not silently promoted. Neither is a GitHub assignee or required reviewer.
 
+### Risks and limitations
+
+The source is frozen by hash, not asserted to be complete or error-free in every card field. The
+loader normalizes a known header typo without editing or silently correcting source content.
+
 ## Issue 3 — Implement deterministic CABT baseline agent and legal deck
 
 **Project metadata:** Brock Harrison · September — Week 2 · Blocked · L  
@@ -259,6 +269,11 @@ Blocked by Issues 1 and 2. Completion unblocks Issue 4.
 
 Brock Harrison owns the narrative work. Professor Oak wants a transparent comparison point before
 any complex strategy. Neither is a GitHub assignee or required reviewer.
+
+### Risks and limitations
+
+The fixed deck and rule policy are integration examples, not claims of competitive strength. CABT
+does not expose a documented deterministic seed, so complete reruns may produce different outcomes.
 
 ## Issue 4 — Run CABT baseline and assemble Artifact Bundle
 
@@ -324,6 +339,11 @@ Blocked by Issue 3. The unchanged committed candidate unblocks Issue 5.
 Ash Ketchum owns the narrative work. Professor Oak wants outcome differences described rather than
 tuned away. Neither is a GitHub assignee or required reviewer.
 
+### Risks and limitations
+
+Twenty unseeded matches support integration acceptance, not statistical performance conclusions.
+Only the GitHub Actions run may approve a candidate; local output remains development evidence.
+
 ## Issue 5 — Independently verify and hand off September baseline
 
 **Project metadata:** Gary Oak · September — Week 4 · Backlog · M  
@@ -384,6 +404,11 @@ evidence for October Analysis.
 Gary Oak owns the narrative work. Professor Juniper wants the handoff language to distinguish
 technical rerun independence from a real collaborator's approval. Neither is a GitHub assignee or
 required reviewer.
+
+### Risks and limitations
+
+A fresh workflow is technically independent but is not second-human review. Because CABT is
+unseeded, outcome equality is recorded for comparison and never required for verification.
 
 ## Branch and release policy
 

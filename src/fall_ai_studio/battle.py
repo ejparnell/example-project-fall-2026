@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections import Counter
 from collections.abc import Callable, Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from enum import IntEnum
 from typing import Any, Protocol
 
@@ -64,7 +64,8 @@ class BaselineAgent:
                 self._turn = turn
                 self._non_terminal_actions = 0
             priority = MAIN_ACTION_PRIORITY
-            if self._non_terminal_actions >= 8:
+            guard_active = self._non_terminal_actions >= 8
+            if guard_active:
                 priority = (OptionType.ATTACK, OptionType.END)
             for desired_type in priority:
                 for index, option in enumerate(options):
@@ -72,6 +73,8 @@ class BaselineAgent:
                         if desired_type not in {OptionType.ATTACK, OptionType.END}:
                             self._non_terminal_actions += 1
                         return [index]
+            if guard_active:
+                raise RuntimeError("Baseline progress guard found no ATTACK or END option")
         if selection.get("type") == SelectType.YES_NO:
             for index, option in enumerate(options):
                 if option.get("type") == OptionType.YES:
@@ -233,6 +236,32 @@ class EvaluationResult:
             self.summary.completed_matches == self.summary.match_count
             and self.summary.invalid_or_error_matches == 0
         )
+
+    def to_summary_document(self) -> dict[str, Any]:
+        """Return the canonical machine-readable summary for this evaluation."""
+
+        return {
+            "schema": "fall-ai-studio/evaluation-summary/v1",
+            "accepted": self.accepted,
+            "match_count": self.summary.match_count,
+            "completed_matches": self.summary.completed_matches,
+            "invalid_or_error_matches": self.summary.invalid_or_error_matches,
+            "by_baseline_position": {
+                str(position): asdict(summary)
+                for position, summary in self.summary.by_position.items()
+            },
+            "terminations": dict(self.summary.terminations),
+        }
+
+    def to_match_documents(self) -> tuple[dict[str, Any], ...]:
+        """Return replay-free match records suitable for JSON Lines evidence."""
+
+        documents = []
+        for match in self.matches:
+            document = asdict(match)
+            document.pop("replay", None)
+            documents.append({"schema": "fall-ai-studio/match-result/v1", **document})
+        return tuple(documents)
 
 
 def run_evaluation(

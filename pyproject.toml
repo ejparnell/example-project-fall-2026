@@ -10,6 +10,7 @@ readme = "README.md"
 requires-python = ">=3.11,<3.12"
 dependencies = [
   "kaggle-environments==1.32.7",
+  "matplotlib>=3.10,<4",
 ]
 
 [project.scripts]

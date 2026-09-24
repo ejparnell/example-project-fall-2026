@@ -73,6 +73,13 @@ body:
     validations:
       required: true
   - type: textarea
+    id: risks
+    attributes:
+      label: Risks and limitations
+      description: Record known unknowns, assumptions, and claims this work must not make.
+    validations:
+      required: true
+  - type: textarea
     id: notes
     attributes:
       label: Implementation notes

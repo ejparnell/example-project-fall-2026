@@ -132,3 +132,33 @@ def test_catalog_rejects_inconsistent_card_level_values(tmp_path):
 
     with pytest.raises(CatalogValidationError, match="inconsistent card-level fields"):
         load_catalog(source)
+
+
+def test_catalog_rejects_more_than_three_actions_for_one_card(tmp_path):
+    source = tmp_path / "cards.csv"
+    row = [
+        "721",
+        "Sprigatito",
+        "PAL",
+        "12",
+        "Basic",
+        "n/a",
+        "Pokémon",
+        "n/a",
+        "70",
+        "{G}",
+        "{R}",
+        "",
+        "1",
+        "Scratch",
+        "{C}",
+        "10",
+        "",
+    ]
+    with source.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.writer(handle)
+        writer.writerow(SOURCE_HEADERS)
+        writer.writerows([row] * 4)
+
+    with pytest.raises(CatalogValidationError, match="more than three Card Actions"):
+        load_catalog(source)

@@ -14,6 +14,10 @@ Closes #
 
 <!-- Name created/changed artifacts and whether an approved bundle is affected. -->
 
+## Dependencies and related work
+
+<!-- Link blockers, follow-ups, decisions, and any pull requests that must land in order. -->
+
 ## Verification evidence
 
 <!-- Include commands, results, and workflow or artifact links. A checkbox is not evidence. -->

@@ -149,6 +149,10 @@ def load_catalog(path: str | Path, *, expected_sha256: str | None = None) -> Cat
                 for field in ("Move Name", "Cost", "Damage", "Effect Explanation")
             )
             if any(value is not None for value in action_values):
+                if len(actions) >= 3:
+                    raise CatalogValidationError(
+                        f"Card ID {card_id} has more than three Card Actions at row {row_count}"
+                    )
                 actions.append(CardAction(len(actions) + 1, *action_values))
 
     cards = {card_id: _record(values, actions) for card_id, (values, actions) in grouped.items()}

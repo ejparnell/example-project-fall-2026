@@ -137,12 +137,13 @@ confirmation; third-party materials are not relicensed here.
 
 ## Fall roadmap
 
-| Month | Native GitHub milestone | Outcome |
+| Month | Planned milestone outcome | Outcome |
 | --- | --- | --- |
 | September | September Baseline | Executable, reproducible baseline and approved Artifact Bundle |
 | October | October Analysis | Evidence-led matchup and failure analysis |
 | November | November Refinement | Strategy comparison and reproducibility refinement |
 | December | December Portfolio | Final narrative, presentation, and portfolio handoff |
 
-Only the active month receives Issues. Weekly sequencing uses the Project's `Target Cycle`
-iteration field rather than week-level milestones.
+Only the active month's native milestone and Issues are created. Later rows remain roadmap plans
+until their month becomes active. Weekly sequencing uses the Project's `Target Cycle` iteration
+field rather than week-level milestones.

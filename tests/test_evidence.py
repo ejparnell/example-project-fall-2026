@@ -1,3 +1,5 @@
+import hashlib
+import json
 from pathlib import Path
 
 from fall_ai_studio.battle import (
@@ -7,7 +9,34 @@ from fall_ai_studio.battle import (
     run_evaluation,
 )
 from fall_ai_studio.catalog import load_catalog, load_deck
-from fall_ai_studio.evidence import RunReceipt, assemble_bundle, verify_bundle
+from fall_ai_studio.evidence import (
+    CONTENT_FILES,
+    CONTENT_SCHEMAS,
+    RunReceipt,
+    assemble_bundle,
+    verify_bundle,
+)
+
+
+def _sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _reseal(bundle: Path, changed_name: str) -> None:
+    manifest_path = bundle / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    entry = next(item for item in manifest["files"] if item["path"] == changed_name)
+    entry["sha256"] = _sha256(bundle / changed_name)
+    entry["bytes"] = (bundle / changed_name).stat().st_size
+    manifest_path.write_text(
+        json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
+    integrity_path = bundle / "integrity.json"
+    integrity = json.loads(integrity_path.read_text(encoding="utf-8"))
+    integrity["manifest_sha256"] = _sha256(manifest_path)
+    integrity_path.write_text(
+        json.dumps(integrity, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
 
 
 def test_artifact_bundle_is_complete_and_detects_tampering(tmp_path):
@@ -55,7 +84,20 @@ def test_artifact_bundle_is_complete_and_detects_tampering(tmp_path):
     )
 
     assert verify_bundle(bundle).valid
-    (bundle / "summary.json").write_text("{}\n")
+    manifest = json.loads((bundle / "manifest.json").read_text(encoding="utf-8"))
+    assert manifest["dependencies"] == receipt.dependencies
+    assert {entry["path"]: entry["schema"] for entry in manifest["files"]} == {
+        name: CONTENT_SCHEMAS[name] for name in CONTENT_FILES
+    }
+
+    matches_path = bundle / "matches.jsonl"
+    matches = matches_path.read_text(encoding="utf-8").splitlines()
+    first_match = json.loads(matches[0])
+    first_match["outcome"] = "loss"
+    matches[0] = json.dumps(first_match, sort_keys=True)
+    matches_path.write_text("\n".join(matches) + "\n", encoding="utf-8")
+    _reseal(bundle, "matches.jsonl")
     tampered = verify_bundle(bundle)
     assert not tampered.valid
-    assert any("summary.json SHA-256 mismatch" in error for error in tampered.errors)
+    assert any("outcome does not match its rewards" in error for error in tampered.errors)
+    assert any("summary outcomes do not match" in error for error in tampered.errors)

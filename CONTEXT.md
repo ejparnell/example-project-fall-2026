@@ -33,7 +33,7 @@ The use of executable teaching code and collaboration practices that a Fellow te
 _Avoid_: Exhaustive GitHub feature catalog, decorative board, production-workflow simulation
 
 **Fictional Monthly Milestone**:
-One of four native GitHub Milestones framing a monthly outcome: September Baseline, October Analysis, November Refinement, or December Portfolio. All four show the roadmap, but only the Active Project Month receives Issues.
+The native GitHub Milestone for the Active Project Month, created just in time to frame one monthly outcome. `September Baseline` is the only milestone created now; October Analysis, November Refinement, and December Portfolio remain planned roadmap outcomes until their month becomes active.
 _Avoid_: Week-level milestone, future-month work set, branch
 
 **Target Cycle**:
@@ -49,7 +49,7 @@ The labels classifying an Issue by `type:` (setup, implementation, experiment, d
 _Avoid_: Status label, unprefixed category, label-only work tracking
 
 **Issue Body Contract**:
-The required Issue structure: Outcome, Context, In scope, Out of scope, Artifacts and Bundle contribution, Acceptance criteria, Verification, Dependencies and related work, and Fictional ownership and stakeholder context. Implementation notes never substitute for observable acceptance or verification evidence.
+The required Issue structure: Outcome, Context, In scope, Out of scope, Artifacts and Bundle contribution, Acceptance criteria, Verification, Dependencies and related work, Fictional ownership and stakeholder context, and Risks and limitations. Implementation notes never substitute for observable acceptance or verification evidence.
 _Avoid_: Unstructured task list, implementation-only brief, acceptance criteria without verification
 
 **September Baseline Work Set**:
