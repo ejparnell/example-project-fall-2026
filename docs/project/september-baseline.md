@@ -127,8 +127,8 @@ The linked pull request must show the successful `Pull request checks` workflow.
 
 ### Dependencies and related work
 
-This Issue unblocks Issue 3. Issue 2 can proceed in the same Target Cycle after the package scaffold
-exists locally, but Issue 3 cannot start until both are complete.
+This Issue unblocks #3. #2 can proceed in the same Target Cycle after the package scaffold exists
+locally, but #3 cannot start until both are complete.
 
 ### Fictional ownership and stakeholder context
 
@@ -196,7 +196,7 @@ Expected command output includes the authoritative hash, `row_count: 2022`, and 
 
 ### Dependencies and related work
 
-This Issue unblocks Issue 3. It records the source decision in ADR 0002 and the Card Record decision
+This Issue unblocks #3. It records the source decision in ADR 0002 and the Card Record decision
 in ADR 0009.
 
 ### Fictional ownership and stakeholder context
@@ -213,7 +213,7 @@ loader normalizes a known header typo without editing or silently correcting sou
 
 **Project metadata:** Brock Harrison · September — Week 2 · Blocked · L  
 **Labels:** `type: implementation`, `area: agent`, `priority: high`  
-**Dependencies:** Issues 1 and 2
+**Dependencies:** #1 and #2
 
 ### Outcome
 
@@ -263,7 +263,7 @@ the local run.
 
 ### Dependencies and related work
 
-Blocked by Issues 1 and 2. Completion unblocks Issue 4.
+Blocked by #1 and #2. Completion unblocks #4.
 
 ### Fictional ownership and stakeholder context
 
@@ -279,7 +279,7 @@ does not expose a documented deterministic seed, so complete reruns may produce 
 
 **Project metadata:** Ash Ketchum · September — Week 3 · Backlog · L  
 **Labels:** `type: experiment`, `area: evaluation`, `priority: high`  
-**Dependencies:** Issue 3
+**Dependencies:** #3
 
 ### Outcome
 
@@ -332,7 +332,7 @@ Link the Workflow Run and uploaded artifact in the Issue and pull request.
 
 ### Dependencies and related work
 
-Blocked by Issue 3. The unchanged committed candidate unblocks Issue 5.
+Blocked by #3. The unchanged committed candidate unblocks #5.
 
 ### Fictional ownership and stakeholder context
 
@@ -348,7 +348,7 @@ Only the GitHub Actions run may approve a candidate; local output remains develo
 
 **Project metadata:** Gary Oak · September — Week 4 · Backlog · M  
 **Labels:** `type: review`, `area: reproducibility`, `priority: high`  
-**Dependencies:** Issue 4
+**Dependencies:** #4
 
 ### Outcome
 
@@ -396,7 +396,7 @@ the Issue and release notes.
 
 ### Dependencies and related work
 
-Blocked by Issue 4. This Issue completes the September Baseline milestone and supplies the starting
+Blocked by #4. This Issue completes the September Baseline milestone and supplies the starting
 evidence for October Analysis.
 
 ### Fictional ownership and stakeholder context

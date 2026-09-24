@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import sys
 from collections import Counter
 from collections.abc import Mapping
@@ -13,7 +14,15 @@ from pathlib import Path
 from typing import Any
 
 from fall_ai_studio.battle import EvaluationResult
-from fall_ai_studio.catalog import Deck, SourceReceipt
+from fall_ai_studio.catalog import (
+    AUTHORITATIVE_SOURCE_CARD_COUNT,
+    AUTHORITATIVE_SOURCE_PATH,
+    AUTHORITATIVE_SOURCE_ROW_COUNT,
+    AUTHORITATIVE_SOURCE_SHA256,
+    REFERENCE_DECK_SHA256,
+    Deck,
+    SourceReceipt,
+)
 
 BUNDLE_SCHEMA = "fall-ai-studio/artifact-bundle/v1"
 INTEGRITY_SCHEMA = "fall-ai-studio/bundle-integrity/v1"
@@ -43,7 +52,7 @@ CONTENT_SCHEMAS = {
     "limitations.md": "fall-ai-studio/limitations/v1",
     "matches.jsonl": MATCH_SCHEMA,
     "reference-deck.json": "fall-ai-studio/reference-deck/v1",
-    "replay.json": "kaggle-environments/replay/v1",
+    "replay.json": "fall-ai-studio/cabt-replay/v1",
     "run-receipt.json": RECEIPT_SCHEMA,
     "summary.json": SUMMARY_SCHEMA,
 }
@@ -78,6 +87,41 @@ def runtime_dependencies() -> dict[str, str]:
         "kaggle-environments": metadata.version("kaggle-environments"),
         "fall-ai-studio-pokemon": metadata.version("fall-ai-studio-pokemon"),
     }
+
+
+def summary_document(evaluation: EvaluationResult) -> dict[str, Any]:
+    """Serialize a Battle result using the Evidence-owned summary schema."""
+
+    return {
+        "schema": SUMMARY_SCHEMA,
+        "accepted": evaluation.accepted,
+        "match_count": evaluation.summary.match_count,
+        "completed_matches": evaluation.summary.completed_matches,
+        "invalid_or_error_matches": evaluation.summary.invalid_or_error_matches,
+        "by_baseline_position": {
+            str(position): asdict(summary)
+            for position, summary in evaluation.summary.by_position.items()
+        },
+        "terminations": dict(evaluation.summary.terminations),
+    }
+
+
+def match_documents(evaluation: EvaluationResult) -> tuple[dict[str, Any], ...]:
+    """Serialize replay-free match evidence without traversing simulator objects."""
+
+    return tuple(
+        {
+            "schema": MATCH_SCHEMA,
+            "match_id": match.match_id,
+            "baseline_position": match.baseline_position,
+            "outcome": match.outcome,
+            "rewards": list(match.rewards),
+            "statuses": list(match.statuses),
+            "termination": match.termination,
+            "step_count": match.step_count,
+        }
+        for match in evaluation.matches
+    )
 
 
 def interpretation_document(evaluation: EvaluationResult) -> str:
@@ -119,11 +163,11 @@ def evaluation_log(evaluation: EvaluationResult) -> str:
 
     events = [
         json.dumps({"event": "match_completed", **document}, sort_keys=True)
-        for document in evaluation.to_match_documents()
+        for document in match_documents(evaluation)
     ]
     events.append(
         json.dumps(
-            {"event": "evaluation_completed", **evaluation.to_summary_document()}, sort_keys=True
+            {"event": "evaluation_completed", **summary_document(evaluation)}, sort_keys=True
         )
     )
     return "\n".join(events) + "\n"
@@ -137,29 +181,15 @@ def independent_verification_document(
     source: SourceReceipt,
     deck: Deck,
     bundle: Path,
-    started_at: str,
-    finished_at: str,
-    code_revision: str,
-    run_id: str,
-    workflow_url: str,
-    environment: str,
-    command: str,
-    dependencies: Mapping[str, str],
+    receipt: RunReceipt,
 ) -> dict[str, Any]:
     """Build a provenance-complete receipt for the second Workflow Run."""
 
-    rerun_summary = rerun.to_summary_document()
+    rerun_summary = summary_document(rerun)
     return {
         "schema": VERIFICATION_SCHEMA,
-        "status": "succeeded" if rerun.accepted else "failed",
-        "started_at": started_at,
-        "finished_at": finished_at,
-        "run_id": run_id,
-        "workflow_url": workflow_url,
-        "code_revision": code_revision,
-        "environment": environment,
-        "command": command,
-        "dependencies": dict(dependencies),
+        **asdict(receipt),
+        "dependencies": dict(receipt.dependencies),
         "source": asdict(source),
         "deck": {"name": deck.name, "sha256": deck.sha256, "source": deck.source},
         "evaluation_plan": {
@@ -239,14 +269,22 @@ def assemble_bundle(
     }
     _write_json(bundle / "run-receipt.json", receipt_document)
     matches_text = "".join(
-        json.dumps(document, sort_keys=True) + "\n" for document in evaluation.to_match_documents()
+        json.dumps(document, sort_keys=True) + "\n" for document in match_documents(evaluation)
     )
     (bundle / "matches.jsonl").write_text(matches_text, encoding="utf-8")
-    _write_json(bundle / "summary.json", evaluation.to_summary_document())
-    replay = next((match.replay for match in evaluation.matches if match.replay is not None), None)
-    if replay is None:
+    _write_json(bundle / "summary.json", summary_document(evaluation))
+    replay_match = next((match for match in evaluation.matches if match.replay is not None), None)
+    if replay_match is None:
         raise ValueError("An Artifact Bundle requires one representative replay")
-    _write_json(bundle / "replay.json", replay)
+    _write_json(
+        bundle / "replay.json",
+        {
+            "schema": CONTENT_SCHEMAS["replay.json"],
+            "match_id": replay_match.match_id,
+            "baseline_position": replay_match.baseline_position,
+            "replay": replay_match.replay,
+        },
+    )
     (bundle / "interpretation.md").write_text(interpretation, encoding="utf-8")
     (bundle / "limitations.md").write_text(limitations, encoding="utf-8")
 
@@ -310,6 +348,9 @@ def verify_bundle(path: str | Path) -> IntegrityResult:
 
 
 def _read_json(path: Path, label: str, errors: list[str]) -> Any | None:
+    if path.is_symlink():
+        errors.append(f"{label} must not be a symbolic link")
+        return None
     try:
         return json.loads(path.read_text(encoding="utf-8"))
     except (json.JSONDecodeError, OSError) as error:
@@ -319,6 +360,9 @@ def _read_json(path: Path, label: str, errors: list[str]) -> Any | None:
 
 def _read_matches(path: Path, errors: list[str]) -> list[dict[str, Any]]:
     matches: list[dict[str, Any]] = []
+    if path.is_symlink():
+        errors.append("matches.jsonl must not be a symbolic link")
+        return matches
     try:
         for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
             try:
@@ -342,6 +386,7 @@ def _expected_outcome(match: Mapping[str, Any]) -> str | None:
         not isinstance(rewards, list)
         or len(rewards) != 2
         or not all(isinstance(value, (int, float)) for value in rewards)
+        or type(position) is not int
         or position not in {0, 1}
     ):
         return None
@@ -362,6 +407,7 @@ def _verify_relationships(
     summary: Mapping[str, Any],
     plan: Mapping[str, Any],
     deck: Mapping[str, Any],
+    replay: Mapping[str, Any],
     matches: list[dict[str, Any]],
     errors: list[str],
 ) -> None:
@@ -375,41 +421,94 @@ def _verify_relationships(
         errors.append("reference-deck.json has an unsupported schema")
     if manifest.get("code_revision") != receipt.get("code_revision"):
         errors.append("Code revision relationship does not match the Run Receipt")
+    code_revision = receipt.get("code_revision")
+    if not isinstance(code_revision, str) or re.fullmatch(r"[0-9a-f]{40}", code_revision) is None:
+        errors.append("Run Receipt code revision must be a full lowercase commit SHA")
+    if manifest.get("bundle_id") != bundle.name:
+        errors.append("Artifact Manifest bundle_id does not match its directory")
+    if manifest.get("created_at") != receipt.get("finished_at"):
+        errors.append("Artifact Manifest creation time does not match the Run Receipt")
     if manifest.get("source") != receipt.get("source"):
         errors.append("Authoritative Source relationship does not match the Run Receipt")
+    expected_source = {
+        "path": AUTHORITATIVE_SOURCE_PATH,
+        "sha256": AUTHORITATIVE_SOURCE_SHA256,
+        "row_count": AUTHORITATIVE_SOURCE_ROW_COUNT,
+        "card_count": AUTHORITATIVE_SOURCE_CARD_COUNT,
+    }
+    if receipt.get("source") != expected_source:
+        errors.append("Authoritative Source contract is not the frozen September source")
     if manifest.get("dependencies") != receipt.get("dependencies"):
         errors.append("Dependency versions do not match the Run Receipt")
+    dependencies = receipt.get("dependencies")
+    if (
+        not isinstance(dependencies, dict)
+        or dependencies.get("kaggle-environments") != "1.32.7"
+        or dependencies.get("fall-ai-studio-pokemon") != "0.1.0"
+        or not isinstance(dependencies.get("python"), str)
+        or not dependencies["python"].startswith("3.11.")
+    ):
+        errors.append("Run Receipt dependency versions do not match the September contract")
     workflow = manifest.get("workflow", {})
+    expected_workflow = {
+        "run_id": receipt.get("run_id"),
+        "url": receipt.get("workflow_url"),
+        "status": receipt.get("status"),
+    }
+    if workflow != expected_workflow:
+        errors.append("Workflow Run relationship does not match the Run Receipt")
     if not isinstance(workflow, dict) or workflow.get("status") != "succeeded":
         errors.append("Artifact Manifest does not record a successful Workflow Run")
     if receipt.get("status") != "succeeded":
         errors.append("Run Receipt does not record a successful Workflow Run")
+    workflow_url = receipt.get("workflow_url")
+    run_id = receipt.get("run_id")
+    if (
+        receipt.get("environment") != "github-actions/linux"
+        or receipt.get("command") != "fall-ai-studio acceptance-run --matches 20"
+        or not isinstance(run_id, str)
+        or not run_id.isdigit()
+        or workflow_url
+        != f"https://github.com/ejparnell/example-project-fall-2026/actions/runs/{run_id}"
+    ):
+        errors.append("Run Receipt is not canonical GitHub Actions acceptance provenance")
 
     configuration = manifest.get("configuration", {})
     if not isinstance(configuration, dict):
         errors.append("Artifact Manifest configuration is not an object")
         configuration = {}
     deck_hash = _sha256(bundle / "reference-deck.json")
+    if deck_hash != REFERENCE_DECK_SHA256:
+        errors.append("Reference Deck is not the frozen official September deck")
     if configuration.get("deck_sha256") != deck_hash:
         errors.append("Reference Deck hash does not match the Artifact Manifest")
     receipt_deck = receipt.get("deck", {})
-    if not isinstance(receipt_deck, dict) or receipt_deck.get("sha256") != deck_hash:
+    expected_receipt_deck = {
+        "name": deck.get("name"),
+        "sha256": deck_hash,
+        "source": deck.get("source"),
+    }
+    if receipt_deck != expected_receipt_deck:
         errors.append("Reference Deck hash does not match the Run Receipt")
+    if plan.get("random_seed") != configuration.get("random_seed"):
+        errors.append("Random-seed configuration does not match the Evaluation Plan")
 
     positions = plan.get("baseline_positions")
-    if not isinstance(positions, list) or any(position not in {0, 1} for position in positions):
+    if not isinstance(positions, list) or any(
+        type(position) is not int or position not in {0, 1} for position in positions
+    ):
         errors.append("Evaluation Plan baseline_positions is invalid")
         positions = []
     position_counts = {"0": positions.count(0), "1": positions.count(1)}
     match_count = len(matches)
-    declared_counts = {
+    declared_counts = (
         plan.get("match_count"),
         summary.get("match_count"),
         configuration.get("match_count"),
         len(positions),
         match_count,
-    }
-    if declared_counts != {20}:
+    )
+    if any(type(count) is not int or count != 20 for count in declared_counts):
         errors.append("September Evaluation must contain exactly 20 consistently declared matches")
     if position_counts != {"0": 10, "1": 10}:
         errors.append("Evaluation Plan must assign 10 matches to each baseline position")
@@ -423,14 +522,22 @@ def _verify_relationships(
     outcomes_by_position: dict[str, dict[str, int]] = {}
     for position in (0, 1):
         outcomes = Counter(
-            match.get("outcome") for match in matches if match.get("baseline_position") == position
+            outcome
+            for match in matches
+            if match.get("baseline_position") == position
+            and isinstance((outcome := match.get("outcome")), str)
+            and outcome in {"win", "loss", "draw"}
         )
         outcomes_by_position[str(position)] = {
             "wins": outcomes["win"],
             "losses": outcomes["loss"],
             "draws": outcomes["draw"],
         }
-    terminations = Counter(match.get("termination") for match in matches)
+    terminations = Counter(
+        termination
+        for match in matches
+        if isinstance((termination := match.get("termination")), str)
+    )
     for match in matches:
         if match.get("schema") != MATCH_SCHEMA:
             errors.append(f"Match {match.get('match_id')} has an unsupported schema")
@@ -451,14 +558,43 @@ def _verify_relationships(
     if not summary.get("accepted") or terminations != Counter({"completed": 20}):
         errors.append("Evaluation summary does not satisfy September acceptance")
 
+    replay_match_id = plan.get("replay_match_id")
+    replay_match = next(
+        (match for match in matches if match.get("match_id") == replay_match_id), None
+    )
+    replay_payload = replay.get("replay")
+    if (
+        replay.get("schema") != CONTENT_SCHEMAS["replay.json"]
+        or type(replay_match_id) is not int
+        or replay.get("match_id") != replay_match_id
+        or replay_match is None
+        or replay.get("baseline_position") != replay_match.get("baseline_position")
+        or not isinstance(replay_payload, dict)
+        or replay_payload.get("name") != "cabt"
+        or replay_payload.get("schema_version") != 1
+        or replay_payload.get("statuses") != ["DONE", "DONE"]
+        or replay_payload.get("rewards") != replay_match.get("rewards")
+        or not isinstance(replay_payload.get("steps"), list)
+        or not replay_payload.get("steps")
+    ):
+        errors.append("Representative Replay does not match its planned completed CABT match")
+
 
 def _verify_bundle(bundle: Path, *, require_integrity: bool) -> IntegrityResult:
     errors: list[str] = []
-    if not bundle.is_dir():
+    if bundle.is_symlink() or not bundle.is_dir():
         return IntegrityResult(False, 0, (f"Bundle directory does not exist: {bundle}",), "")
+    children = list(bundle.iterdir())
+    for child in children:
+        if child.is_symlink():
+            errors.append(f"Bundle entry must not be a symbolic link: {child.name}")
+        elif not child.is_file():
+            errors.append(f"Undeclared non-file entry: {child.name}")
     manifest_path = bundle / "manifest.json"
-    manifest_hash = _sha256(manifest_path) if manifest_path.is_file() else ""
-    actual_files = {path.name for path in bundle.iterdir() if path.is_file()}
+    manifest_hash = (
+        _sha256(manifest_path) if manifest_path.is_file() and not manifest_path.is_symlink() else ""
+    )
+    actual_files = {path.name for path in children if path.is_file() and not path.is_symlink()}
     expected_files = set(REQUIRED_BUNDLE_FILES)
     if not require_integrity:
         expected_files.remove("integrity.json")
@@ -467,21 +603,30 @@ def _verify_bundle(bundle: Path, *, require_integrity: bool) -> IntegrityResult:
     for extra in sorted(actual_files - set(REQUIRED_BUNDLE_FILES)):
         errors.append(f"Undeclared file: {extra}")
 
-    if not manifest_path.is_file():
+    if not manifest_path.is_file() or manifest_path.is_symlink():
         return IntegrityResult(False, 0, tuple(errors), manifest_hash)
     manifest = _read_json(manifest_path, "manifest.json", errors)
     if not isinstance(manifest, dict):
         return IntegrityResult(False, 0, tuple(errors), manifest_hash)
     if manifest.get("schema") != BUNDLE_SCHEMA:
         errors.append("manifest.json has an unsupported schema")
-    if set(manifest.get("required_files", [])) != set(REQUIRED_BUNDLE_FILES):
+    required_files = manifest.get("required_files")
+    if (
+        not isinstance(required_files, list)
+        or not all(isinstance(name, str) for name in required_files)
+        or set(required_files) != set(REQUIRED_BUNDLE_FILES)
+    ):
         errors.append("manifest.json required_files does not match the Bundle contract")
 
     entries = manifest.get("files", [])
     if not isinstance(entries, list):
         errors.append("manifest.json file inventory is not a list")
         entries = []
-    entry_names = {entry.get("path") for entry in entries if isinstance(entry, dict)}
+    entry_names = {
+        name
+        for entry in entries
+        if isinstance(entry, dict) and isinstance((name := entry.get("path")), str)
+    }
     if entry_names != set(CONTENT_FILES):
         errors.append("manifest.json file inventory does not match the Bundle contract")
     checked = 0
@@ -496,7 +641,7 @@ def _verify_bundle(bundle: Path, *, require_integrity: bool) -> IntegrityResult:
         if entry.get("schema") != CONTENT_SCHEMAS.get(name):
             errors.append(f"{name} schema declaration does not match the Bundle contract")
         artifact = bundle / name
-        if not artifact.is_file():
+        if artifact.is_symlink() or not artifact.is_file():
             continue
         checked += 1
         if _sha256(artifact) != entry.get("sha256"):
@@ -513,8 +658,8 @@ def _verify_bundle(bundle: Path, *, require_integrity: bool) -> IntegrityResult:
     replay = _read_json(bundle / "replay.json", "replay.json", errors)
     matches = _read_matches(bundle / "matches.jsonl", errors)
     if not isinstance(replay, dict):
-        errors.append("replay.json must contain a replay object")
-    if all(isinstance(document, dict) for document in (receipt, summary, plan, deck)):
+        errors.append("replay.json must contain a Representative Replay object")
+    if all(isinstance(document, dict) for document in (receipt, summary, plan, deck, replay)):
         _verify_relationships(
             bundle=bundle,
             manifest=manifest,
@@ -522,6 +667,7 @@ def _verify_bundle(bundle: Path, *, require_integrity: bool) -> IntegrityResult:
             summary=summary,
             plan=plan,
             deck=deck,
+            replay=replay,
             matches=matches,
             errors=errors,
         )

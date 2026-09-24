@@ -10,7 +10,13 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from fall_ai_studio.battle import CabtBattleAdapter, EvaluationPlan, run_evaluation
-from fall_ai_studio.catalog import load_catalog, load_deck
+from fall_ai_studio.catalog import (
+    AUTHORITATIVE_SOURCE_PATH,
+    AUTHORITATIVE_SOURCE_SHA256,
+    REFERENCE_DECK_PATH,
+    load_catalog,
+    load_deck,
+)
 from fall_ai_studio.evidence import (
     RunReceipt,
     assemble_bundle,
@@ -19,16 +25,16 @@ from fall_ai_studio.evidence import (
     interpretation_document,
     limitations_document,
     runtime_dependencies,
+    summary_document,
     verify_bundle,
 )
 
-AUTHORITATIVE_SOURCE = Path("data/pokemon-tcg-ai-battle-challenge-strategy/EN Card Data.csv")
-AUTHORITATIVE_SHA256 = "507d8d670c9c3c8d58f400d42eed09270b6b01354332770081bdb455d53b8c84"
-REFERENCE_DECK = Path("config/reference-deck.json")
+AUTHORITATIVE_SOURCE = Path(AUTHORITATIVE_SOURCE_PATH)
+REFERENCE_DECK = Path(REFERENCE_DECK_PATH)
 
 
 def _load_inputs() -> tuple[object, object]:
-    catalog = load_catalog(AUTHORITATIVE_SOURCE, expected_sha256=AUTHORITATIVE_SHA256)
+    catalog = load_catalog(AUTHORITATIVE_SOURCE, expected_sha256=AUTHORITATIVE_SOURCE_SHA256)
     return catalog, load_deck(REFERENCE_DECK, catalog)
 
 
@@ -58,7 +64,7 @@ def _smoke_match(args: argparse.Namespace) -> int:
         CabtBattleAdapter(),
         deck=deck.card_ids,
     )
-    print(json.dumps(evaluation.to_summary_document(), indent=2, sort_keys=True))
+    print(json.dumps(summary_document(evaluation), indent=2, sort_keys=True))
     return 0 if evaluation.accepted else 1
 
 
@@ -98,7 +104,7 @@ def _acceptance_run(args: argparse.Namespace) -> int:
         interpretation=interpretation_document(evaluation),
         limitations=limitations_document(),
     )
-    print(json.dumps(evaluation.to_summary_document(), indent=2, sort_keys=True))
+    print(json.dumps(summary_document(evaluation), indent=2, sort_keys=True))
     return 0
 
 
@@ -126,6 +132,17 @@ def _independent_verify(args: argparse.Namespace) -> int:
         deck=deck.card_ids,
     )
     finished_at = datetime.now(UTC).isoformat().replace("+00:00", "Z")
+    receipt = RunReceipt(
+        run_id=args.run_id,
+        status="succeeded" if rerun.accepted else "failed",
+        started_at=started_at,
+        finished_at=finished_at,
+        code_revision=args.commit_sha,
+        environment=f"github-actions/{os.environ.get('RUNNER_OS', 'unknown').lower()}",
+        workflow_url=args.workflow_url,
+        command="fall-ai-studio independent-verify --matches 20",
+        dependencies=runtime_dependencies(),
+    )
     verification = independent_verification_document(
         integrity=integrity,
         original_summary=original,
@@ -133,14 +150,7 @@ def _independent_verify(args: argparse.Namespace) -> int:
         source=catalog.source,
         deck=deck,
         bundle=args.bundle,
-        started_at=started_at,
-        finished_at=finished_at,
-        code_revision=args.commit_sha,
-        run_id=args.run_id,
-        workflow_url=args.workflow_url,
-        environment=f"github-actions/{os.environ.get('RUNNER_OS', 'unknown').lower()}",
-        command="fall-ai-studio independent-verify --matches 20",
-        dependencies=runtime_dependencies(),
+        receipt=receipt,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(verification, indent=2, sort_keys=True) + "\n")

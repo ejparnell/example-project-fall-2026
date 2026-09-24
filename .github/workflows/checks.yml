@@ -31,7 +31,8 @@ jobs:
         shell: bash
         run: |
           shopt -s nullglob
-          manifests=(artifacts/*/manifest.json)
-          for manifest in "${manifests[@]}"; do
-            uv run fall-ai-studio verify-bundle "$(dirname "$manifest")"
+          bundles=(artifacts/*/)
+          for bundle in "${bundles[@]}"; do
+            test -f "${bundle}manifest.json"
+            uv run fall-ai-studio verify-bundle "$bundle"
           done

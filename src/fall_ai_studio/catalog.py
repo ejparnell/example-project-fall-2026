@@ -10,6 +10,13 @@ from dataclasses import dataclass
 from pathlib import Path
 from types import MappingProxyType
 
+AUTHORITATIVE_SOURCE_PATH = "data/pokemon-tcg-ai-battle-challenge-strategy/EN Card Data.csv"
+AUTHORITATIVE_SOURCE_SHA256 = "507d8d670c9c3c8d58f400d42eed09270b6b01354332770081bdb455d53b8c84"
+AUTHORITATIVE_SOURCE_ROW_COUNT = 2022
+AUTHORITATIVE_SOURCE_CARD_COUNT = 1267
+REFERENCE_DECK_PATH = "config/reference-deck.json"
+REFERENCE_DECK_SHA256 = "5871969abee38296bbae15391eb8a8eee14540c78924dd3bdcf5f62f3bc68164"
+
 EXPECTED_HEADERS = (
     "Card ID",
     "Card Name",

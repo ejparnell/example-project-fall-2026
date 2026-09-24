@@ -51,7 +51,8 @@ A successful project will include:
 
 ### Project Milestones
 
-Use one native GitHub milestone per monthly outcome. Only the active month receives Issues; the
+Create one native GitHub milestone just in time for the active monthly outcome. Create only
+`September Baseline` now; later rows remain roadmap plans until their month becomes active. The
 Project's `Target Cycle` iteration field carries weekly sequencing.
 
 | Month | Milestone | Key Activities |
