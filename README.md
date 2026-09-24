@@ -1,119 +1,148 @@
-# Pokémon TCG AI Battle Challenge: Strategy Category — Example Project
+# Pokémon TCG AI Battle Challenge — Fall 2026 Example
 
-> This repository is a fictional example of the GitHub project space expected for an AI Studio Challenge Project. The Pokémon trainers, Challenge Advisors, and AI Studio Coach named here are invented examples for demonstrating team workflow, issues, project planning, and documentation.
+This repository is an executable, fictional example of a Fall AI Studio Challenge Project. It
+demonstrates how code, Issues, pull requests, decisions, Workflow Runs, and Artifact Bundles fit
+together around a small but real CABT baseline.
 
----
+Ash Ketchum, Misty Williams, Brock Harrison, Erika Otsuka, Gary Oak, Professor Oak, Professor Elm,
+and Professor Juniper are fictional narrative participants. They are not GitHub accounts,
+assignees, approvers, or real program staff.
 
-### 👥 **Team Members**
+## September outcome
 
-| Name | GitHub Handle | Contribution |
-|---|---|---|
-| Ash Ketchum | [@ashketchum](https://github.com/ashketchum-example) | Agent strategy, gameplay experiments, and project coordination |
-| Misty Williams | [@mistycerulean](https://github.com/mistycerulean-example) | Card-pool exploration, matchup analysis, and data documentation |
-| Brock Harrison | [@brockstone](https://github.com/brockstone-example) | Deck construction, baseline policies, and feature design |
-| Erika Otsuka | [@erikaceladon](https://github.com/erikaceladon-example) | Experiment tracking, reproducibility, and visualization |
-| Gary Oak | [@garyrival](https://github.com/garyrival-example) | Evaluation, error analysis, and results interpretation |
+The **September Baseline** milestone establishes a reproducible comparison point:
 
-**Fictional project staff:** Professor Oak and Professor Elm are the Challenge Advisors, and Professor Juniper is the AI Studio Coach. These names and handles are placeholders for this example project only.
+- the supplied English card export is frozen by path and SHA-256;
+- one Card Record is built per simulator Card ID without hiding repeated action rows;
+- the official CABT 60-card sample deck is held constant;
+- a deterministic rule-based Baseline Agent plays a first-legal Integration Control;
+- 20 real CABT matches are balanced across both player positions; and
+- a successful GitHub Actions run produces a complete, independently verifiable Artifact Bundle.
 
----
+September is an integration baseline, not a competitive benchmark. It has no minimum win-rate
+gate and makes no seeded-repeatability claim.
 
-## 🎯 **Project Highlights**
+## Architecture
 
-- Documented an AI Training Agent strategy for the Pokémon TCG AI Battle Challenge.
-- Compared a transparent baseline policy with progressively more deliberate gameplay strategies.
-- Evaluated deck and agent choices across repeated matches and different matchups.
-- Used this repository to demonstrate issues, milestones, notebooks, data documentation, and reproducible project practices.
+Reusable logic lives behind three public module seams:
 
----
+| Module | Responsibility | Public evidence |
+| --- | --- | --- |
+| [Catalog](src/fall_ai_studio/catalog.py) | Normalize and validate the Authoritative Source; aggregate Card Actions; validate the Reference Deck | Source Receipt and data-contract tests |
+| [Battle](src/fall_ai_studio/battle.py) | Apply the Baseline Policy and execute a balanced Evaluation Plan through CABT or an in-memory adapter | Match records, position-aware summary, representative replay |
+| [Evidence](src/fall_ai_studio/evidence.py) | Assemble manifests and Run Receipts; recompute Bundle Integrity | Complete Artifact Bundle or explicit integrity errors |
 
-## 👩🏽‍💻 **Setup and Installation**
+The [CLI](src/fall_ai_studio/cli.py), workflows, and
+[exploration notebook](notebooks/01_card_catalog_exploration.ipynb) are thin callers of those
+interfaces. Acceptance-critical logic does not live only in a notebook.
 
-**Provide step-by-step instructions so someone else can run your code and reproduce your results. Depending on your setup, include:**
+## Quick start
 
-* How to clone the repository
-* How to install dependencies
-* How to set up the environment
-* How to access the dataset(s)
-* How to run the notebook or scripts
+Install [uv](https://docs.astral.sh/uv/), then use the frozen Python 3.11 environment:
 
----
+```bash
+uv sync --frozen --all-groups
+uv run fall-ai-studio validate-source
+uv run ruff format --check .
+uv run ruff check .
+uv run pytest
+```
 
-## 🏗️ **Project Overview**
+Run two development matches through the real simulator:
 
-This example project is connected to the Break Through Tech AI Program by modeling the structure and workflow expected in a real AI Studio GitHub repository. It is based on the Pokémon TCG AI Battle Challenge Strategy Category and uses the supplied card metadata to support agent and deck analysis.
+```bash
+uv run fall-ai-studio smoke-match --matches 2
+```
 
-The repository is intentionally an example rather than a record of a real student team. Ash, Misty, Brock, Erika, Gary, Professor Oak, Professor Elm, and Professor Juniper are fictional project participants and staff used to demonstrate how a team might document ownership, collaboration, and project decisions.
+This smoke command proves local integration only. It cannot approve a milestone bundle. The
+canonical 20-match acceptance and independent-verification runs are manually dispatched GitHub
+Actions workflows.
 
-The project objective is to make an AI Training Agent's deck choices, gameplay strategy, experiments, and limitations understandable to another team. Its potential impact is educational: it demonstrates how to turn a competition challenge into a clear, reproducible GitHub project space.
+For Colab, `requirements.txt` is generated from `uv.lock`; it is not a second hand-maintained
+dependency source.
 
----
+## Baseline Policy
 
-## 📊 **Data Exploration**
+During the main action selection, the Baseline Agent uses this stable priority:
 
-**You might consider describing the following (as applicable):**
+```text
+EVOLVE → ATTACH → ABILITY → PLAY → ATTACK → END
+```
 
-* The dataset(s) used: origin, format, size, type of data
-* Data exploration and preprocessing approaches
-* Insights from your Exploratory Data Analysis (EDA)
-* Challenges and assumptions when working with the dataset(s)
+It avoids voluntary `RETREAT` and `DISCARD`, selects stable first options for setup and follow-up
+choices, answers yes to initiated effects, and forces `ATTACK` or `END` after eight non-terminal
+main actions. It does not inspect card text, optimize damage, tune the deck, or model the opponent.
 
-**Potential visualizations to include:**
+The Integration Control selects the first legal option. It exists to prove CABT integration and is
+not presented as a strategy-bearing baseline.
 
-* Plots, charts, heatmaps, feature visualizations, sample dataset images
+## Evidence and approval
 
----
+An Artifact Bundle is a complete package from one successful task or related group of tasks. It
+contains the files, a machine-readable Artifact Manifest, interpretive evidence, and checks proving
+the package is complete and usable by the next step. Partial and failed work is not an approved
+bundle.
 
-## 🧠 **Model Development**
+The September workflow produces:
 
-**You might consider describing the following (as applicable):**
+- the Reference Deck and Evaluation Plan;
+- a Run Receipt tied to the source hash, code revision, dependency versions, and workflow URL;
+- 20 machine-readable match records and a position-aware summary;
+- one representative replay;
+- interpretation and limitations;
+- a manifest of file hashes and relationships; and
+- an integrity report that can be recomputed rather than trusted.
 
-* Model(s) used (e.g., CNN with transfer learning, regression models)
-* Feature selection and Hyperparameter tuning strategies
-* Training setup (e.g., % of data for training/validation, evaluation metric, baseline performance)
+See [the Artifact Bundle handoff](artifacts/README.md) and the
+[September delivery plan](docs/project/september-baseline.md).
 
+## Project workflow
 
----
+- `main` is the only durable integration branch.
+- Work begins on short-lived Issue Branches created from current `main`.
+- Pull requests link an Issue, show verification evidence, resolve conversations, and merge with a
+  merge commit.
+- Fast PR checks run formatting, lint, public-interface tests, the data contract, and committed
+  bundle integrity. They do not run CABT.
+- Accepted monthly outcomes use annotated tags and GitHub Releases, not durable month branches.
+- This solo-owned example requires zero fictional approvals. A live multi-person team should
+  require at least one real collaborator's approval.
 
-## 📈 **Results & Key Findings**
+The complete decision record is in [docs/adr](docs/adr), and the project vocabulary is in
+[CONTEXT.md](CONTEXT.md).
 
-**You might consider describing the following (as applicable):**
+## Fictional team narrative
 
-* Performance metrics (e.g., Accuracy, F1 score, RMSE)
-* How your model performed
-* Insights from evaluating model fairness
+| Fictional participant | Example focus |
+| --- | --- |
+| Ash Ketchum | Evaluation runs and Artifact Bundle assembly |
+| Misty Williams | Authoritative Source and Card Records |
+| Brock Harrison | Baseline Agent and simulator integration |
+| Erika Otsuka | Reproducible environment and automated checks |
+| Gary Oak | Independent verification and milestone handoff |
 
-**Potential visualizations to include:**
+Fictional ownership appears in Issue bodies and Project fields. Real GitHub Assignees remain empty.
 
-* Confusion matrix, precision-recall curve, feature importance plot, prediction distribution, outputs from fairness or explainability tools
+## Data and rights
 
----
+The Authoritative Source is
+`data/pokemon-tcg-ai-battle-challenge-strategy/EN Card Data.csv`, SHA-256
+`507d8d670c9c3c8d58f400d42eed09270b6b01354332770081bdb455d53b8c84`. The file remains unchanged;
+the Catalog normalizes its `Previos stage` header at load time. See [the data guide](data/README.md).
 
-## 🚀 **Next Steps**
+This repository does not grant a blanket open-source license. It combines original teaching code
+with third-party Pokémon challenge data and reference materials whose relicensing rights have not
+been established. Any later code-license decision requires real rights-holder or Challenge Advisor
+confirmation; third-party materials are not relicensed here.
 
-**You might consider addressing the following (as applicable):**
+## Fall roadmap
 
-* What are some of the limitations of your model?
-* What would you do differently with more time/resources?
-* What additional datasets or techniques would you explore?
+| Month | Native GitHub milestone | Outcome |
+| --- | --- | --- |
+| September | September Baseline | Executable, reproducible baseline and approved Artifact Bundle |
+| October | October Analysis | Evidence-led matchup and failure analysis |
+| November | November Refinement | Strategy comparison and reproducibility refinement |
+| December | December Portfolio | Final narrative, presentation, and portfolio handoff |
 
----
-
-## 📝 **License**
-
-Specify how your project can be used by others. Choose an appropriate license and link it here (e.g., MIT, Apache 2.0). Make sure your Challenge Advisor approves of the selected license type. 
-
-**Example:**
-This project is licensed under the MIT License.
-
----
-
-## 📄 **References** (Optional but encouraged)
-
-Cite relevant papers, articles, or resources that supported your project.
-
----
-
-## 🙏 **Acknowledgements** (Optional but encouraged)
-
-This example acknowledges its fictional Challenge Advisors, Professor Oak and Professor Elm, and fictional AI Studio Coach, Professor Juniper. No real individuals or organizations are represented by these names.
+Only the active month receives Issues. Weekly sequencing uses the Project's `Target Cycle`
+iteration field rather than week-level milestones.

@@ -8,6 +8,16 @@ The dataset contains card identifiers, card names, expansion information, gamepl
 
 English and Japanese versions of the card data are provided. They describe the same card pool in different languages.
 
+## Authoritative Source
+
+September Workflow Runs use `EN Card Data.csv` unchanged, with SHA-256
+`507d8d670c9c3c8d58f400d42eed09270b6b01354332770081bdb455d53b8c84`. It contains 2,022 source
+rows representing 1,267 distinct `Card ID` values. The Catalog normalizes the misspelled
+`Previos stage` header in memory and preserves the source file as supplied.
+
+The similarly named `EN_Card_Data.csv` is retained as comparison evidence, not as an interchangeable
+replacement. It changes line endings and some field values, including 71 English `{N}` type values.
+
 ## Location
 
 All supplied files are stored in [`pokemon-tcg-ai-battle-challenge-strategy`](pokemon-tcg-ai-battle-challenge-strategy).
@@ -29,7 +39,8 @@ The source folder also contains `Card_ID List_EN_.pdf`, `Card_ID List_JP_.pdf`, 
 
 - The two PDF files ending in `_` are byte-for-byte duplicates of their primary counterparts.
 - The CSV files with underscores are alternate exports. They are not byte-for-byte duplicates of the primary CSVs: they use different line endings and contain some field-level corrections or substitutions.
-- Select and document one version of each language dataset before analysis. Do not combine rows from the primary and alternate exports without first reconciling their differences.
+- Do not combine rows from the primary and alternate exports without a new recorded decision and a
+  reconciliation of their differences.
 
 ## CSV Schema
 

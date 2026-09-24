@@ -1,3 +1,8 @@
-# The supplied card-reference PDFs are 144-176 MB each, above GitHub's
-# 100 MB per-file limit. They remain available in the local data folder.
 data/pokemon-tcg-ai-battle-challenge-strategy/*.pdf
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.artifacts/
+output/
+*.pyc

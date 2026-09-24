@@ -1,0 +1,81 @@
+name: Fall AI Studio work item
+description: Define an agent-ready outcome and its contribution to an Artifact Bundle.
+title: ""
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: >-
+        Use this structure for executable work. Fictional owners belong in the body and Project
+        fields; leave real GitHub Assignees empty unless a real collaborator owns the work.
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Outcome
+      description: State the observable result, not the activity.
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Explain why this outcome matters now and who uses it next.
+    validations:
+      required: true
+  - type: textarea
+    id: in-scope
+    attributes:
+      label: In scope
+      description: List the work this Issue owns.
+    validations:
+      required: true
+  - type: textarea
+    id: out-of-scope
+    attributes:
+      label: Out of scope
+      description: Name adjacent work this Issue deliberately does not own.
+    validations:
+      required: true
+  - type: textarea
+    id: artifacts
+    attributes:
+      label: Artifacts and Bundle contribution
+      description: Name the files or evidence produced and how the next step will use them.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Use observable, checkable statements.
+      placeholder: "- [ ] A caller can..."
+    validations:
+      required: true
+  - type: textarea
+    id: verification
+    attributes:
+      label: Verification
+      description: Give commands, expected results, and evidence links. A checkbox alone is not proof.
+    validations:
+      required: true
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies and related work
+      description: Link blockers, blocked work, decisions, and the eventual pull request.
+    validations:
+      required: true
+  - type: textarea
+    id: ownership
+    attributes:
+      label: Fictional ownership and stakeholder context
+      description: Name the fictional owner and any narrative CA or Coach context.
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Implementation notes
+      description: Optional ideas or constraints; these do not replace acceptance criteria.
+    validations:
+      required: false

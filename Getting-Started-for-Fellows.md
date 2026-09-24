@@ -1,24 +1,78 @@
-# 👋 Getting Started
+# Getting Started for Fellows
 
-**Welcome to your AI Studio Challenge Project repository!**
+This repository is a worked example, not an empty template. Read the project
+[README](README.md), the [September plan](docs/project/september-baseline.md), and the relevant
+[decision records](docs/adr) before changing an interface or workflow.
 
-This repo is your team's workspace for Fall 2026 AI Studio. Everything you work on — task planning, notebooks, data, documentation — will live here. Make it your own, use it to collaborate, and consult with your AI Studio Coach and Challenge Advisor if you need help. 
+## 1. Create the frozen environment
 
-If you're not familiar with how GitHub works, or need a refresher, you can find helpful documentation [here](https://docs.github.com/en/get-started).
+Install [uv](https://docs.astral.sh/uv/), clone the repository, and run:
 
-To start adding project tasks aligned with your Challenge Project's monthly milestones, use the Projects tab [here](https://github.com/Break-Through-Tech/fall-ai-studio-2026-challenge-project-template-repo/projects)
+```bash
+uv sync --frozen --all-groups
+```
 
-> 💡 **Note:** You can delete this file once your team is up and running; it's just here to help you get oriented. 
+The project targets Python 3.11. `pyproject.toml` declares dependencies, `uv.lock` freezes the
+environment, and `requirements.txt` is a generated Colab bridge.
 
----
+## 2. Validate inputs before analysis
 
-## 📂 What's in This Repository
+```bash
+uv run fall-ai-studio validate-source
+```
 
-| File/Folder | What Is It? | Creator |
-|-------------|-------------|---------|
-| [Challenge-Project-Overview.md](Challenge-Project-Overview.md) | Project details and guidance from your Challenge Advisor to help your team get started | Challenge Advisor
-| [data](data) | Where project dataset files get stored (e.g., `.csv`, `.json`, `.parquet`, `.zip`) | Challenge Advisor
-| [README.md](README.md) | Where your team will document your project work; this will become the core of your AI Studio portfolio artifact | Fellows
-| [notebooks](notebooks) | Where your team's Jupyter notebooks for exploration, analysis, and modeling get stored (e.g., `.ipynb`) | Fellows
-| [requirements.txt](requirements.txt) | A place to list Python packages your project uses (e.g., `pandas`, `scikit-learn`) | Fellows
-| [gitignore](.gitignore) | A place to list files Git should ignore (e.g., system files like .DS_Store) | Fellows
+The command checks the English source hash, header contract, 2,022 rows, 1,267 Card Records, and
+the 60-card Reference Deck. Never silently replace the Authoritative Source with the similarly
+named alternate export.
+
+## 3. Run the fast PR checks
+
+```bash
+uv run ruff format --check .
+uv run ruff check .
+uv run pytest
+```
+
+Tests exercise the Catalog, Battle, and Evidence interfaces. They use recorded observations and an
+in-memory Battle adapter, so pull requests stay fast and do not mislabel a mocked match as CABT
+acceptance evidence.
+
+## 4. Run a local simulator smoke test
+
+```bash
+uv run fall-ai-studio smoke-match --matches 2
+```
+
+Use local matches to develop and diagnose. Do not commit their output as an approved bundle. Only
+the manually dispatched **September milestone acceptance** workflow can produce milestone approval
+evidence.
+
+## 5. Work from an Issue
+
+Every work item uses the repository Issue template and includes:
+
+- an outcome and context;
+- explicit in-scope and out-of-scope boundaries;
+- named Artifacts and Bundle contribution;
+- observable acceptance criteria and verification commands;
+- dependency links; and
+- fictional ownership/stakeholder context.
+
+Create a short-lived branch from current `main`, open a linked pull request, include verification
+evidence, and merge with a merge commit after required checks and conversations are complete.
+
+## Repository map
+
+| Path | Purpose |
+| --- | --- |
+| `src/fall_ai_studio/` | Reusable Catalog, Battle, Evidence, and CLI code |
+| `tests/` | Public-interface and data-contract tests |
+| `config/` | Reviewed Reference Deck configuration |
+| `notebooks/` | Thin narrative exploration using the Catalog |
+| `artifacts/` | Approved, versioned Artifact Bundles only |
+| `.github/workflows/` | Fast PR checks and real CABT milestone workflows |
+| `docs/adr/` | Hard-to-reverse or surprising project decisions |
+| `docs/project/` | Milestone and Issue source documents |
+
+Fictional Pokémon participants are teaching devices. Do not create fake accounts, assign real
+GitHub users to fictional work, or require fictional approvals.

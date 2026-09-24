@@ -1,0 +1,37 @@
+name: Pull request checks
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          python-version: "3.11"
+      - name: Install the frozen environment
+        run: uv sync --frozen --all-groups
+      - name: Check formatting
+        run: uv run ruff format --check .
+      - name: Lint
+        run: uv run ruff check .
+      - name: Run interface tests
+        run: uv run pytest
+      - name: Validate the Authoritative Source and Reference Deck
+        run: uv run fall-ai-studio validate-source
+      - name: Verify committed Artifact Bundles
+        shell: bash
+        run: |
+          shopt -s nullglob
+          manifests=(artifacts/*/manifest.json)
+          for manifest in "${manifests[@]}"; do
+            uv run fall-ai-studio verify-bundle "$(dirname "$manifest")"
+          done
