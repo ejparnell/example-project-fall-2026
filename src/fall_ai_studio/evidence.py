@@ -4,8 +4,11 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import re
+import shutil
 import sys
+import tempfile
 from collections import Counter
 from collections.abc import Mapping
 from dataclasses import asdict, dataclass
@@ -237,6 +240,46 @@ def assemble_bundle(
     interpretation: str,
     limitations: str,
 ) -> Path:
+    """Stage, verify, and atomically publish a complete Artifact Bundle."""
+
+    destination_path = Path(destination)
+    if destination_path.exists() or destination_path.is_symlink():
+        raise FileExistsError(f"Artifact Bundle destination already exists: {destination_path}")
+    destination_path.parent.mkdir(parents=True, exist_ok=True)
+    staging_root = Path(tempfile.mkdtemp(prefix=".artifact-bundle.", dir=destination_path.parent))
+    staging_path = staging_root / destination_path.name
+    try:
+        _assemble_bundle_contents(
+            staging_path,
+            bundle_id=destination_path.name,
+            evaluation=evaluation,
+            source=source,
+            deck=deck,
+            deck_path=deck_path,
+            receipt=receipt,
+            interpretation=interpretation,
+            limitations=limitations,
+        )
+        staging_path.replace(destination_path)
+        staging_root.rmdir()
+    except BaseException:
+        shutil.rmtree(staging_root, ignore_errors=True)
+        raise
+    return destination_path
+
+
+def _assemble_bundle_contents(
+    destination: str | Path,
+    *,
+    bundle_id: str,
+    evaluation: EvaluationResult,
+    source: SourceReceipt,
+    deck: Deck,
+    deck_path: str | Path,
+    receipt: RunReceipt,
+    interpretation: str,
+    limitations: str,
+) -> Path:
     """Write a complete bundle, refusing partial or unsuccessful run evidence."""
 
     if not evaluation.accepted:
@@ -300,7 +343,7 @@ def assemble_bundle(
     ]
     manifest = {
         "schema": BUNDLE_SCHEMA,
-        "bundle_id": bundle.name,
+        "bundle_id": bundle_id,
         "created_at": receipt.finished_at,
         "code_revision": receipt.code_revision,
         "dependencies": dict(receipt.dependencies),
@@ -353,7 +396,7 @@ def _read_json(path: Path, label: str, errors: list[str]) -> Any | None:
         return None
     try:
         return json.loads(path.read_text(encoding="utf-8"))
-    except (json.JSONDecodeError, OSError) as error:
+    except (json.JSONDecodeError, OSError, UnicodeError) as error:
         errors.append(f"{label} is not readable JSON: {error}")
         return None
 
@@ -374,7 +417,7 @@ def _read_matches(path: Path, errors: list[str]) -> list[dict[str, Any]]:
                 errors.append(f"matches.jsonl line {line_number} is not an object")
                 continue
             matches.append(document)
-    except OSError as error:
+    except (OSError, UnicodeError) as error:
         errors.append(f"matches.jsonl is unreadable: {error}")
     return matches
 
@@ -385,7 +428,7 @@ def _expected_outcome(match: Mapping[str, Any]) -> str | None:
     if (
         not isinstance(rewards, list)
         or len(rewards) != 2
-        or not all(isinstance(value, (int, float)) for value in rewards)
+        or not all(type(value) in {int, float} and math.isfinite(value) for value in rewards)
         or type(position) is not int
         or position not in {0, 1}
     ):
@@ -490,8 +533,8 @@ def _verify_relationships(
     }
     if receipt_deck != expected_receipt_deck:
         errors.append("Reference Deck hash does not match the Run Receipt")
-    if plan.get("random_seed") != configuration.get("random_seed"):
-        errors.append("Random-seed configuration does not match the Evaluation Plan")
+    if plan.get("random_seed") is not None or configuration.get("random_seed") is not None:
+        errors.append("September Evaluation must retain the documented unseeded configuration")
 
     positions = plan.get("baseline_positions")
     if not isinstance(positions, list) or any(
@@ -541,6 +584,12 @@ def _verify_relationships(
     for match in matches:
         if match.get("schema") != MATCH_SCHEMA:
             errors.append(f"Match {match.get('match_id')} has an unsupported schema")
+        if type(match.get("match_id")) is not int or match.get("match_id", 0) <= 0:
+            errors.append("Match ID must be a positive integer")
+        if type(match.get("baseline_position")) is not int:
+            errors.append(f"Match {match.get('match_id')} position must be an integer")
+        if type(match.get("step_count")) is not int or match.get("step_count", 0) <= 0:
+            errors.append(f"Match {match.get('match_id')} step_count must be a positive integer")
         expected_outcome = _expected_outcome(match)
         if expected_outcome is None or match.get("outcome") != expected_outcome:
             errors.append(f"Match {match.get('match_id')} outcome does not match its rewards")
@@ -555,7 +604,7 @@ def _verify_relationships(
         errors.append("Completed match count does not match matches.jsonl")
     if summary.get("invalid_or_error_matches") != match_count - terminations["completed"]:
         errors.append("Invalid or error match count does not match matches.jsonl")
-    if not summary.get("accepted") or terminations != Counter({"completed": 20}):
+    if summary.get("accepted") is not True or terminations != Counter({"completed": 20}):
         errors.append("Evaluation summary does not satisfy September acceptance")
 
     replay_match_id = plan.get("replay_match_id")
@@ -576,6 +625,7 @@ def _verify_relationships(
         or replay_payload.get("rewards") != replay_match.get("rewards")
         or not isinstance(replay_payload.get("steps"), list)
         or not replay_payload.get("steps")
+        or len(replay_payload.get("steps", [])) != replay_match.get("step_count")
     ):
         errors.append("Representative Replay does not match its planned completed CABT match")
 
@@ -614,9 +664,13 @@ def _verify_bundle(bundle: Path, *, require_integrity: bool) -> IntegrityResult:
     if (
         not isinstance(required_files, list)
         or not all(isinstance(name, str) for name in required_files)
+        or len(required_files) != len(REQUIRED_BUNDLE_FILES)
+        or len(set(required_files)) != len(required_files)
         or set(required_files) != set(REQUIRED_BUNDLE_FILES)
     ):
-        errors.append("manifest.json required_files does not match the Bundle contract")
+        errors.append(
+            "manifest.json required_files contains duplicates or does not match the Bundle contract"
+        )
 
     entries = manifest.get("files", [])
     if not isinstance(entries, list):
@@ -627,8 +681,15 @@ def _verify_bundle(bundle: Path, *, require_integrity: bool) -> IntegrityResult:
         for entry in entries
         if isinstance(entry, dict) and isinstance((name := entry.get("path")), str)
     }
-    if entry_names != set(CONTENT_FILES):
-        errors.append("manifest.json file inventory does not match the Bundle contract")
+    if (
+        len(entries) != len(CONTENT_FILES)
+        or len(entry_names) != len(entries)
+        or entry_names != set(CONTENT_FILES)
+    ):
+        errors.append(
+            "manifest.json file inventory contains duplicate paths or does not match the Bundle "
+            "contract"
+        )
     checked = 0
     for entry in entries:
         if not isinstance(entry, dict):
@@ -650,6 +711,8 @@ def _verify_bundle(bundle: Path, *, require_integrity: bool) -> IntegrityResult:
             errors.append(f"{name} byte-size mismatch")
         if _media_type(name) != entry.get("media_type"):
             errors.append(f"{name} media type does not match the Bundle contract")
+    if checked != len(CONTENT_FILES):
+        errors.append("Recomputed checked-file count does not match the Bundle contract")
 
     receipt = _read_json(bundle / "run-receipt.json", "run-receipt.json", errors)
     summary = _read_json(bundle / "summary.json", "summary.json", errors)
@@ -681,7 +744,7 @@ def _verify_bundle(bundle: Path, *, require_integrity: bool) -> IntegrityResult:
                 errors.append("integrity.json does not refer to the current manifest")
             if report.get("valid") is not True or report.get("errors") != []:
                 errors.append("integrity.json does not record a valid bundle")
-            if report.get("checked_files") != len(CONTENT_FILES):
+            if report.get("checked_files") != checked or checked != len(CONTENT_FILES):
                 errors.append("integrity.json checked_files does not match the Bundle contract")
 
     return IntegrityResult(not errors, checked, tuple(errors), manifest_hash)

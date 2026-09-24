@@ -61,7 +61,7 @@ def bundle(tmp_path):
             "schema_version": 1,
             "statuses": ["DONE", "DONE"],
             "rewards": [1.0, -1.0],
-            "steps": [[{"status": "DONE"}, {"status": "DONE"}]],
+            "steps": [[{"status": "DONE"}, {"status": "DONE"}]] * 20,
         }
     )
     simulations = [
@@ -188,6 +188,121 @@ def test_bundle_rejects_resealed_non_reference_deck(bundle):
     integrity = verify_bundle(bundle_path)
     assert not integrity.valid
     assert any("frozen official September deck" in error for error in integrity.errors)
+
+
+@pytest.mark.parametrize(
+    ("filename", "mutate"),
+    [
+        ("summary.json", lambda document: document.update({"accepted": "yes"})),
+        ("matches.jsonl", lambda document: document.update({"step_count": "unknown"})),
+        ("matches.jsonl", lambda document: document.update({"rewards": [True, False]})),
+    ],
+)
+def test_bundle_rejects_wrong_evidence_types(bundle, filename, mutate):
+    bundle_path, _ = bundle
+    path = bundle_path / filename
+    if filename.endswith(".jsonl"):
+        lines = path.read_text(encoding="utf-8").splitlines()
+        document = json.loads(lines[0])
+        mutate(document)
+        lines[0] = json.dumps(document, sort_keys=True)
+        path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    else:
+        document = json.loads(path.read_text(encoding="utf-8"))
+        mutate(document)
+        path.write_text(json.dumps(document, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    _reseal(bundle_path, filename)
+    assert not verify_bundle(bundle_path).valid
+
+
+def test_bundle_rejects_claimed_seed_and_replay_length_mismatch(bundle):
+    bundle_path, _ = bundle
+    plan_path = bundle_path / "evaluation-plan.json"
+    plan = json.loads(plan_path.read_text(encoding="utf-8"))
+    plan["random_seed"] = 42
+    plan_path.write_text(json.dumps(plan, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    manifest_path = bundle_path / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["configuration"]["random_seed"] = 42
+    manifest_path.write_text(
+        json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
+    _reseal(bundle_path, "evaluation-plan.json")
+    replay_path = bundle_path / "replay.json"
+    replay = json.loads(replay_path.read_text(encoding="utf-8"))
+    replay["replay"]["steps"] = replay["replay"]["steps"][:-1]
+    replay_path.write_text(json.dumps(replay, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    _reseal(bundle_path, "replay.json")
+
+    integrity = verify_bundle(bundle_path)
+    assert not integrity.valid
+    assert any("unseeded" in error for error in integrity.errors)
+    assert any("Representative Replay" in error for error in integrity.errors)
+
+
+@pytest.mark.parametrize("filename", ["summary.json", "matches.jsonl"])
+def test_invalid_utf8_returns_integrity_error(bundle, filename):
+    bundle_path, _ = bundle
+    (bundle_path / filename).write_bytes(b"\xff\xfe")
+    integrity = verify_bundle(bundle_path)
+    assert not integrity.valid
+    assert any(filename in error for error in integrity.errors)
+
+
+def test_bundle_rejects_duplicate_manifest_entries(bundle):
+    bundle_path, _ = bundle
+    manifest_path = bundle_path / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["required_files"].append(manifest["required_files"][0])
+    manifest["files"].append(manifest["files"][0])
+    manifest_path.write_text(
+        json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
+    integrity_path = bundle_path / "integrity.json"
+    integrity_report = json.loads(integrity_path.read_text(encoding="utf-8"))
+    integrity_report["manifest_sha256"] = _sha256(manifest_path)
+    integrity_path.write_text(
+        json.dumps(integrity_report, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
+
+    integrity = verify_bundle(bundle_path)
+    assert not integrity.valid
+    assert integrity.checked_files == 9
+    assert any("duplicate" in error for error in integrity.errors)
+
+
+def test_failed_assembly_leaves_no_partial_destination(bundle, tmp_path):
+    _, receipt = bundle
+    catalog = load_catalog(Path("data/pokemon-tcg-ai-battle-challenge-strategy/EN Card Data.csv"))
+    deck_path = Path("config/reference-deck.json")
+    deck = load_deck(deck_path, catalog)
+    simulations = [
+        SimulationResult(
+            rewards=(1.0, -1.0),
+            statuses=("DONE", "DONE"),
+            termination="completed",
+            step_count=20,
+        )
+        for _ in range(20)
+    ]
+    evaluation = run_evaluation(
+        EvaluationPlan.balanced(match_count=20),
+        InMemoryBattleAdapter(simulations),
+        deck=deck.card_ids,
+    )
+    destination = tmp_path / "failed-bundle"
+    with pytest.raises(ValueError, match="representative replay"):
+        assemble_bundle(
+            destination,
+            evaluation=evaluation,
+            source=catalog.source,
+            deck=deck,
+            deck_path=deck_path,
+            receipt=receipt,
+            interpretation="Interpretation\n",
+            limitations="Limitations\n",
+        )
+    assert not destination.exists()
 
 
 @pytest.mark.parametrize(

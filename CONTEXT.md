@@ -71,7 +71,7 @@ The review and integration record linking one Issue Branch and its Issue to Prot
 _Avoid_: Unlinked code dump, direct push, milestone-wide change set
 
 **Pull Request Contract**:
-The required Pull Request structure: Linked Issue, Outcome, Changes, Artifacts and Bundle impact, Verification evidence, Risks and limitations, and Review guidance. A checked box without commands, results, or linked evidence is not verification.
+The required Pull Request structure: Linked Issue, Outcome, Changes, Artifacts and Bundle impact, Dependencies and related work, Verification evidence, Risks and limitations, and Review guidance. A checked box without commands, results, or linked evidence is not verification.
 _Avoid_: Orphaned pull request, change list without outcome, unsupported verification claim
 
 **Provenance-Preserving Merge**:
