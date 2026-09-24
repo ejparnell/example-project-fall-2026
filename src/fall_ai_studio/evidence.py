@@ -598,6 +598,29 @@ def _verify_relationships(
             errors.append(f"Match {match.get('match_id')} did not complete cleanly")
     if summary.get("by_baseline_position") != outcomes_by_position:
         errors.append("Evaluation summary outcomes do not match matches.jsonl")
+    summary_counts = (
+        summary.get("match_count"),
+        summary.get("completed_matches"),
+        summary.get("invalid_or_error_matches"),
+    )
+    if any(type(count) is not int or count < 0 for count in summary_counts):
+        errors.append("Evaluation summary counts must be non-negative integers")
+    summary_positions = summary.get("by_baseline_position")
+    if not isinstance(summary_positions, dict) or any(
+        not isinstance(position_summary, dict)
+        or any(
+            type(position_summary.get(field)) is not int or position_summary.get(field, -1) < 0
+            for field in ("wins", "losses", "draws")
+        )
+        for position_summary in summary_positions.values()
+    ):
+        errors.append("Evaluation position summaries must contain non-negative integer counts")
+    summary_terminations = summary.get("terminations")
+    if not isinstance(summary_terminations, dict) or any(
+        not isinstance(name, str) or type(count) is not int or count < 0
+        for name, count in summary_terminations.items()
+    ):
+        errors.append("Evaluation termination counts must be non-negative integers")
     if summary.get("terminations") != dict(terminations):
         errors.append("Evaluation summary terminations do not match matches.jsonl")
     if summary.get("completed_matches") != terminations["completed"]:
@@ -615,13 +638,21 @@ def _verify_relationships(
     if (
         replay.get("schema") != CONTENT_SCHEMAS["replay.json"]
         or type(replay_match_id) is not int
+        or type(replay.get("match_id")) is not int
         or replay.get("match_id") != replay_match_id
         or replay_match is None
+        or type(replay.get("baseline_position")) is not int
         or replay.get("baseline_position") != replay_match.get("baseline_position")
         or not isinstance(replay_payload, dict)
         or replay_payload.get("name") != "cabt"
+        or type(replay_payload.get("schema_version")) is not int
         or replay_payload.get("schema_version") != 1
         or replay_payload.get("statuses") != ["DONE", "DONE"]
+        or not isinstance(replay_payload.get("rewards"), list)
+        or not all(
+            type(value) in {int, float} and math.isfinite(value)
+            for value in replay_payload.get("rewards", [])
+        )
         or replay_payload.get("rewards") != replay_match.get("rewards")
         or not isinstance(replay_payload.get("steps"), list)
         or not replay_payload.get("steps")

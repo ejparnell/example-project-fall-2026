@@ -194,6 +194,10 @@ def test_bundle_rejects_resealed_non_reference_deck(bundle):
     ("filename", "mutate"),
     [
         ("summary.json", lambda document: document.update({"accepted": "yes"})),
+        (
+            "summary.json",
+            lambda document: document.update({"invalid_or_error_matches": False}),
+        ),
         ("matches.jsonl", lambda document: document.update({"step_count": "unknown"})),
         ("matches.jsonl", lambda document: document.update({"rewards": [True, False]})),
     ],
@@ -212,6 +216,16 @@ def test_bundle_rejects_wrong_evidence_types(bundle, filename, mutate):
         mutate(document)
         path.write_text(json.dumps(document, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     _reseal(bundle_path, filename)
+    assert not verify_bundle(bundle_path).valid
+
+
+def test_bundle_rejects_boolean_replay_schema_version(bundle):
+    bundle_path, _ = bundle
+    replay_path = bundle_path / "replay.json"
+    replay = json.loads(replay_path.read_text(encoding="utf-8"))
+    replay["replay"]["schema_version"] = True
+    replay_path.write_text(json.dumps(replay, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    _reseal(bundle_path, "replay.json")
     assert not verify_bundle(bundle_path).valid
 
 
