@@ -97,7 +97,7 @@ A work product created by project activity, such as source code, configuration, 
 _Avoid_: Activity without a work product, undocumented claim
 
 **Artifact Bundle**:
-A complete package of related Artifacts from one successfully completed task or group of related tasks. It includes the files, an Artifact Manifest, interpretive evidence, and checks confirming it is complete and usable by the next step; partial or failed work is not an approved Artifact Bundle.
+A complete package of related Artifacts from one successfully completed task or group of related tasks. It includes a `README.md` overview of the work completed, findings, handling decisions, limitations, verification, and evidence; the supporting files; an Artifact Manifest; and checks confirming it is complete and usable by the next step. An EDA bundle's README reports what was found and how data conditions and anomalies were handled. Partial or failed work is not an approved Artifact Bundle.
 _Avoid_: Loose output folder, partial run, failed work, unverified file collection
 
 **Artifact Manifest**:

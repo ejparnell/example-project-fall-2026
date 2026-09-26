@@ -79,12 +79,16 @@ not presented as a strategy-bearing baseline.
 ## Evidence and approval
 
 An Artifact Bundle is a complete package from one successful task or related group of tasks. It
-contains the files, a machine-readable Artifact Manifest, interpretive evidence, and checks proving
-the package is complete and usable by the next step. Partial and failed work is not an approved
-bundle.
+contains a human-readable `README.md` overview, the supporting files, a machine-readable Artifact
+Manifest, interpretive evidence, and checks proving the package is complete and usable by the next
+step. The README explains the work completed, findings, how noteworthy conditions were handled,
+limitations, verification steps, and where to find the detailed evidence. Partial and failed work
+is not an approved bundle.
 
 The September workflow produces:
 
+- a README overview of the completed setup, source exploration, baseline implementation, and
+  evaluation work;
 - the Reference Deck and Evaluation Plan;
 - a Run Receipt tied to the source hash, code revision, dependency versions, and workflow URL;
 - 20 machine-readable match records and a position-aware summary;

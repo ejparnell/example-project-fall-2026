@@ -40,7 +40,9 @@ body:
     id: artifacts
     attributes:
       label: Artifacts and Bundle contribution
-      description: Name the files or evidence produced and how the next step will use them.
+      description: >-
+        Name the files or evidence produced, how the next step will use them, and what a bundle
+        README must report about the completed work, findings, and handling decisions.
     validations:
       required: true
   - type: textarea

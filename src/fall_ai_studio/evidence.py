@@ -34,7 +34,10 @@ RECEIPT_SCHEMA = "fall-ai-studio/run-receipt/v1"
 MATCH_SCHEMA = "fall-ai-studio/match-result/v1"
 SUMMARY_SCHEMA = "fall-ai-studio/evaluation-summary/v1"
 VERIFICATION_SCHEMA = "fall-ai-studio/independent-verification/v1"
+BUNDLE_README_SCHEMA = "fall-ai-studio/bundle-readme/v1"
+SUPPORTED_BUNDLE_README_SCHEMAS = (BUNDLE_README_SCHEMA,)
 REQUIRED_BUNDLE_FILES = (
+    "README.md",
     "evaluation-plan.json",
     "integrity.json",
     "interpretation.md",
@@ -50,6 +53,7 @@ CONTENT_FILES = tuple(
     name for name in REQUIRED_BUNDLE_FILES if name not in {"integrity.json", "manifest.json"}
 )
 CONTENT_SCHEMAS = {
+    "README.md": BUNDLE_README_SCHEMA,
     "evaluation-plan.json": PLAN_SCHEMA,
     "interpretation.md": "fall-ai-studio/interpretation/v1",
     "limitations.md": "fall-ai-studio/limitations/v1",
@@ -59,6 +63,24 @@ CONTENT_SCHEMAS = {
     "run-receipt.json": RECEIPT_SCHEMA,
     "summary.json": SUMMARY_SCHEMA,
 }
+SEPTEMBER_EDA_STAGE_TYPE_COUNTS = (
+    ("Basic Pokémon", 595),
+    ("Stage 1 Pokémon", 345),
+    ("Stage 2 Pokémon", 116),
+    ("Item", 77),
+    ("Supporter", 61),
+    ("Pokémon Tool", 27),
+    ("Stadium", 26),
+    ("Special Energy", 12),
+    ("Basic Energy", 8),
+)
+SEPTEMBER_EDA_MISSING_COUNTS = (
+    ("previous stage", 801),
+    ("HP", 206),
+    ("card type", 191),
+    ("weakness", 246),
+    ("resistance", 1047),
+)
 
 
 @dataclass(frozen=True)
@@ -158,6 +180,158 @@ def limitations_document() -> str:
         "opponent.\n"
         "- The Baseline Agent uses action-type priorities only; it does not inspect card text, "
         "optimize damage, or model the opponent.\n"
+    )
+
+
+def bundle_readme_document(
+    *,
+    bundle_id: str,
+    receipt: Mapping[str, Any],
+    summary: Mapping[str, Any],
+    deck: Mapping[str, Any],
+    schema: str = BUNDLE_README_SCHEMA,
+) -> str:
+    """Render a versioned human-readable overview for a September Artifact Bundle."""
+
+    if schema == BUNDLE_README_SCHEMA:
+        return _bundle_readme_v1_document(
+            bundle_id=bundle_id,
+            receipt=receipt,
+            summary=summary,
+            deck=deck,
+        )
+    raise ValueError(f"Unsupported Artifact Bundle README schema: {schema}")
+
+
+def _bundle_readme_v1_document(
+    *,
+    bundle_id: str,
+    receipt: Mapping[str, Any],
+    summary: Mapping[str, Any],
+    deck: Mapping[str, Any],
+) -> str:
+    """Render the frozen v1 overview; add a new renderer for future editorial contracts."""
+
+    source = receipt["source"]
+    if not isinstance(source, Mapping):
+        raise ValueError("Run Receipt source must be an object")
+    positions = summary["by_baseline_position"]
+    if not isinstance(positions, Mapping):
+        raise ValueError("Evaluation summary positions must be an object")
+    position_zero = positions["0"]
+    position_one = positions["1"]
+    if not isinstance(position_zero, Mapping) or not isinstance(position_one, Mapping):
+        raise ValueError("Evaluation position summaries must be objects")
+    deck_cards = deck["cards"]
+    if not isinstance(deck_cards, list):
+        raise ValueError("Reference Deck cards must be a list")
+    stage_type_rows = "".join(
+        f"| {stage_or_type} | {count:,} |\n"
+        for stage_or_type, count in SEPTEMBER_EDA_STAGE_TYPE_COUNTS
+    )
+    missing_rows = "".join(
+        f"| {field} | {count:,} |\n" for field, count in SEPTEMBER_EDA_MISSING_COUNTS
+    )
+    return (
+        "# September Baseline Artifact Bundle\n\n"
+        f"`{bundle_id}` is the human-readable handoff for the completed September Baseline work. "
+        "Start here before inspecting the machine-readable evidence.\n\n"
+        f"It was assembled by [Workflow Run {receipt['run_id']}]({receipt['workflow_url']}) from "
+        f"code revision `{receipt['code_revision']}` and completed at "
+        f"`{receipt['finished_at']}`.\n\n"
+        "## Work completed\n\n"
+        "- Established the frozen Python environment and automated repository checks used by the "
+        "run.\n"
+        "- Validated and explored the authoritative English card export, then converted its "
+        "action-level rows into trustworthy Card Records.\n"
+        f"- Validated the {len(deck_cards)}-card `{deck['name']}` Reference Deck and exercised the "
+        "deterministic Baseline Agent against the Integration Control.\n"
+        f"- Completed {summary['completed_matches']} balanced CABT matches and packaged "
+        "their provenance, results, replay, interpretation, and limitations.\n\n"
+        "## Key findings\n\n"
+        "### Source-data exploration\n\n"
+        f"- The frozen export contains {source['row_count']:,} source rows representing "
+        f"{source['card_count']:,} Card Records. Multiple rows for one Card ID describe ordered "
+        "actions rather than duplicate cards.\n"
+        "- The action-count distribution is 8 with no actions, 536 with one, 691 with two, and "
+        "32 with three. The eight no-action records were preserved rather than assigned invented "
+        "actions.\n"
+        "- The card pool spans the following stages and non-Pokémon card types:\n\n"
+        "| Stage or type | Card Records |\n"
+        "| --- | ---: |\n"
+        f"{stage_type_rows}\n"
+        "- Missing values occur in fields that do not apply to every kind of card:\n\n"
+        "| Field | Missing Card Records |\n"
+        "| --- | ---: |\n"
+        f"{missing_rows}\n"
+        "- The exploration identified blanks and `n/a` values plus the source header typo "
+        "`Previos stage`. The similarly named alternate English export changes values as well as "
+        "formatting and was not promoted or combined with the authoritative export.\n"
+        "- This snapshot describes the available card pool, not match-state data, so the EDA does "
+        "not support claims about agent performance.\n\n"
+        "### Baseline implementation\n\n"
+        "- The Baseline Policy selects the first legal action using the fixed priority "
+        "`EVOLVE → ATTACH → ABILITY → PLAY → ATTACK → END`, makes stable setup and follow-up "
+        "choices, accepts effects it initiates, and uses an eight-action progress guard.\n"
+        "- The Integration Control always selects the first legal option. It proves simulator "
+        "execution but is not a strategy-bearing baseline.\n"
+        "- A local two-match smoke run exercises the Baseline Agent once in each player position. "
+        "That is development evidence of integration and cannot approve an Artifact Bundle.\n\n"
+        "### Baseline evaluation\n\n"
+        f"- Player position 0: {position_zero['wins']} wins, {position_zero['losses']} losses, and "
+        f"{position_zero['draws']} draws.\n"
+        f"- Player position 1: {position_one['wins']} wins, {position_one['losses']} losses, and "
+        f"{position_one['draws']} draws.\n"
+        f"- All {summary['completed_matches']} planned matches completed; "
+        f"{summary['invalid_or_error_matches']} were invalid or errored. These outcomes "
+        "are an integration baseline, not a competitive-performance claim.\n\n"
+        "## How the findings were handled\n\n"
+        f"- The source was frozen at `{source['path']}` with SHA-256 `{source['sha256']}`.\n"
+        "- The Catalog maps blanks and `n/a` to missing values, normalizes the known header typo "
+        "at load time, aggregates ordered actions by Card ID, and rejects inconsistent repeated "
+        "card-level values without editing the supplied CSV.\n"
+        "- Structural missing values were not imputed: Energy, Trainer, and Pokémon records do not "
+        "share every field, and inventing values would misstate the source. The alternate export "
+        "was retained only for traceability.\n"
+        "- The Evaluation Plan balances the Baseline Agent across both player positions. Results "
+        "were recorded without post-result policy tuning, and the unseeded CABT run is not treated "
+        "as exactly repeatable.\n"
+        "- Detailed claims and caveats remain separated in "
+        "[Interpretation](interpretation.md) and [Limitations](limitations.md).\n\n"
+        "## Reproduce and verify\n\n"
+        f"The acceptance workflow ran `{receipt['command']}` in `{receipt['environment']}`. From "
+        "the repository root, recreate the frozen environment:\n\n"
+        "```bash\n"
+        "uv sync --frozen --all-groups\n"
+        "```\n\n"
+        "Then run the verification command matching the bundle's current location. While the "
+        "candidate is still in the workflow checkout:\n\n"
+        "```bash\n"
+        f"uv run fall-ai-studio verify-bundle output/{bundle_id}\n"
+        "```\n\n"
+        "After download, point the command at the extracted bundle directory:\n\n"
+        "```bash\n"
+        f"uv run fall-ai-studio verify-bundle /path/to/downloaded/{bundle_id}\n"
+        "```\n\n"
+        "For the unchanged bundle after it is committed:\n\n"
+        "```bash\n"
+        f"uv run fall-ai-studio verify-bundle artifacts/{bundle_id}\n"
+        "```\n\n"
+        "The later independent-verification workflow repeats the evaluation from a fresh checkout; "
+        "outcome equality is recorded but is not required.\n\n"
+        "## Bundle contents\n\n"
+        "| Evidence | Purpose |\n"
+        "| --- | --- |\n"
+        "| [Evaluation plan](evaluation-plan.json) and [Reference Deck](reference-deck.json) | "
+        "Inputs and position-balanced configuration |\n"
+        "| [Run Receipt](run-receipt.json) | Code, source, dependencies, command, and workflow "
+        "provenance |\n"
+        "| [Match records](matches.jsonl), [summary](summary.json), and "
+        "[representative replay](replay.json) | Machine-readable evaluation evidence |\n"
+        "| [Interpretation](interpretation.md) and [Limitations](limitations.md) | Meaning, "
+        "boundaries, and unsupported claims |\n"
+        "| [Manifest](manifest.json) and [integrity report](integrity.json) | Inventory, hashes, "
+        "relationships, and verification result |\n"
     )
 
 
@@ -291,6 +465,24 @@ def _assemble_bundle_contents(
         raise FileExistsError(f"Artifact Bundle destination is not empty: {bundle}")
     bundle.mkdir(parents=True, exist_ok=True)
 
+    receipt_document = {
+        "schema": RECEIPT_SCHEMA,
+        **asdict(receipt),
+        "dependencies": dict(receipt.dependencies),
+        "source": asdict(source),
+        "deck": {"name": deck.name, "sha256": deck.sha256, "source": deck.source},
+    }
+    summary = summary_document(evaluation)
+    deck_document = json.loads(Path(deck_path).read_text(encoding="utf-8"))
+    (bundle / "README.md").write_text(
+        bundle_readme_document(
+            bundle_id=bundle_id,
+            receipt=receipt_document,
+            summary=summary,
+            deck=deck_document,
+        ),
+        encoding="utf-8",
+    )
     (bundle / "reference-deck.json").write_bytes(Path(deck_path).read_bytes())
     _write_json(
         bundle / "evaluation-plan.json",
@@ -303,19 +495,12 @@ def _assemble_bundle_contents(
             "random_seed_note": "CABT exposes no documented deterministic seed setting.",
         },
     )
-    receipt_document = {
-        "schema": RECEIPT_SCHEMA,
-        **asdict(receipt),
-        "dependencies": dict(receipt.dependencies),
-        "source": asdict(source),
-        "deck": {"name": deck.name, "sha256": deck.sha256, "source": deck.source},
-    }
     _write_json(bundle / "run-receipt.json", receipt_document)
     matches_text = "".join(
         json.dumps(document, sort_keys=True) + "\n" for document in match_documents(evaluation)
     )
     (bundle / "matches.jsonl").write_text(matches_text, encoding="utf-8")
-    _write_json(bundle / "summary.json", summary_document(evaluation))
+    _write_json(bundle / "summary.json", summary)
     replay_match = next((match for match in evaluation.matches if match.replay is not None), None)
     if replay_match is None:
         raise ValueError("An Artifact Bundle requires one representative replay")
@@ -399,6 +584,45 @@ def _read_json(path: Path, label: str, errors: list[str]) -> Any | None:
     except (json.JSONDecodeError, OSError, UnicodeError) as error:
         errors.append(f"{label} is not readable JSON: {error}")
         return None
+
+
+def _read_text(path: Path, label: str, errors: list[str]) -> str | None:
+    if path.is_symlink():
+        errors.append(f"{label} must not be a symbolic link")
+        return None
+    try:
+        return path.read_text(encoding="utf-8")
+    except (OSError, UnicodeError) as error:
+        errors.append(f"{label} is not readable text: {error}")
+        return None
+
+
+def _verify_readme(
+    readme: str,
+    *,
+    bundle_id: str,
+    schema: str,
+    receipt: Mapping[str, Any],
+    summary: Mapping[str, Any],
+    deck: Mapping[str, Any],
+    errors: list[str],
+) -> None:
+    try:
+        expected = bundle_readme_document(
+            bundle_id=bundle_id,
+            receipt=receipt,
+            summary=summary,
+            deck=deck,
+            schema=schema,
+        )
+    except (KeyError, TypeError, ValueError) as error:
+        errors.append(f"README.md overview cannot be validated against bundle evidence: {error}")
+        return
+    if readme != expected:
+        errors.append(
+            "README.md does not match the generated overview of this bundle's work, findings, "
+            "handling, provenance, verification, limitations, and evidence"
+        )
 
 
 def _read_matches(path: Path, errors: list[str]) -> list[dict[str, Any]]:
@@ -730,7 +954,10 @@ def _verify_bundle(bundle: Path, *, require_integrity: bool) -> IntegrityResult:
         if not isinstance(name, str) or Path(name).name != name:
             errors.append("manifest.json contains an unsafe file path")
             continue
-        if entry.get("schema") != CONTENT_SCHEMAS.get(name):
+        declared_schema = entry.get("schema")
+        if name == "README.md" and declared_schema not in SUPPORTED_BUNDLE_README_SCHEMAS:
+            errors.append("README.md declares an unsupported overview schema")
+        elif name != "README.md" and declared_schema != CONTENT_SCHEMAS.get(name):
             errors.append(f"{name} schema declaration does not match the Bundle contract")
         artifact = bundle / name
         if artifact.is_symlink() or not artifact.is_file():
@@ -745,14 +972,44 @@ def _verify_bundle(bundle: Path, *, require_integrity: bool) -> IntegrityResult:
     if checked != len(CONTENT_FILES):
         errors.append("Recomputed checked-file count does not match the Bundle contract")
 
+    readme = _read_text(bundle / "README.md", "README.md", errors)
     receipt = _read_json(bundle / "run-receipt.json", "run-receipt.json", errors)
     summary = _read_json(bundle / "summary.json", "summary.json", errors)
     plan = _read_json(bundle / "evaluation-plan.json", "evaluation-plan.json", errors)
     deck = _read_json(bundle / "reference-deck.json", "reference-deck.json", errors)
     replay = _read_json(bundle / "replay.json", "replay.json", errors)
     matches = _read_matches(bundle / "matches.jsonl", errors)
-    if not isinstance(replay, dict):
-        errors.append("replay.json must contain a Representative Replay object")
+    for label, document in (
+        ("run-receipt.json", receipt),
+        ("summary.json", summary),
+        ("evaluation-plan.json", plan),
+        ("reference-deck.json", deck),
+        ("replay.json", replay),
+    ):
+        if not isinstance(document, dict):
+            errors.append(f"{label} must contain an object")
+    readme_schema = next(
+        (
+            entry.get("schema")
+            for entry in entries
+            if isinstance(entry, dict) and entry.get("path") == "README.md"
+        ),
+        None,
+    )
+    if (
+        all(isinstance(document, dict) for document in (receipt, summary, deck))
+        and isinstance(readme, str)
+        and isinstance(readme_schema, str)
+    ):
+        _verify_readme(
+            readme,
+            bundle_id=bundle.name,
+            schema=readme_schema,
+            receipt=receipt,
+            summary=summary,
+            deck=deck,
+            errors=errors,
+        )
     if all(isinstance(document, dict) for document in (receipt, summary, plan, deck, replay)):
         _verify_relationships(
             bundle=bundle,
@@ -777,5 +1034,7 @@ def _verify_bundle(bundle: Path, *, require_integrity: bool) -> IntegrityResult:
                 errors.append("integrity.json does not record a valid bundle")
             if report.get("checked_files") != checked or checked != len(CONTENT_FILES):
                 errors.append("integrity.json checked_files does not match the Bundle contract")
+        else:
+            errors.append("integrity.json must contain an object")
 
     return IntegrityResult(not errors, checked, tuple(errors), manifest_hash)

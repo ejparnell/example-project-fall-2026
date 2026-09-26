@@ -130,6 +130,99 @@ def test_artifact_bundle_is_complete_and_detects_tampering(bundle):
     assert any("summary outcomes do not match" in error for error in tampered.errors)
 
 
+def test_artifact_bundle_readme_overviews_completed_work_and_findings(bundle):
+    bundle_path, _ = bundle
+    readme_path = bundle_path / "README.md"
+    readme = readme_path.read_text(encoding="utf-8")
+
+    assert readme.startswith("# September Baseline Artifact Bundle\n")
+    assert "## Work completed" in readme
+    assert "## Key findings" in readme
+    assert "## How the findings were handled" in readme
+    assert "## Reproduce and verify" in readme
+    assert "## Bundle contents" in readme
+    assert "2,022 source rows" in readme
+    assert "1,267 Card Records" in readme
+    assert "8 with no actions, 536 with one, 691 with two, and 32 with three" in readme
+    assert "| Basic Pokémon | 595 |" in readme
+    assert "| Basic Energy | 8 |" in readme
+    assert "| previous stage | 801 |" in readme
+    assert "| resistance | 1,047 |" in readme
+    assert "Structural missing values were not imputed" in readme
+    assert "alternate English export changes values as well as formatting" in readme
+    assert "does not support claims about agent performance" in readme
+    assert "EVOLVE → ATTACH → ABILITY → PLAY → ATTACK → END" in readme
+    assert "Integration Control always selects the first legal option" in readme
+    assert "development evidence of integration and cannot approve" in readme
+    assert "without editing the supplied CSV" in readme
+    assert "Player position 0: 10 wins, 0 losses, and 0 draws" in readme
+    assert "Player position 1: 0 wins, 10 losses, and 0 draws" in readme
+    assert "uv run fall-ai-studio verify-bundle output/september-baseline-v1" in readme
+    assert (
+        "uv run fall-ai-studio verify-bundle /path/to/downloaded/september-baseline-v1"
+    ) in readme
+    assert "uv run fall-ai-studio verify-bundle artifacts/september-baseline-v1" in readme
+    assert "[Interpretation](interpretation.md)" in readme
+    assert "[Limitations](limitations.md)" in readme
+    # v1 is immutable once released; editorial changes require a new schema and renderer.
+    assert _sha256(readme_path) == (
+        "3b9db486fcbe2a3b73cd5326fee4c66eee6ee5b983bb3f8319766acabb58a521"
+    )
+
+    manifest = json.loads((bundle_path / "manifest.json").read_text(encoding="utf-8"))
+    readme_entry = next(entry for entry in manifest["files"] if entry["path"] == "README.md")
+    assert readme_entry["schema"] == "fall-ai-studio/bundle-readme/v1"
+
+
+def test_bundle_rejects_resealed_readme_that_is_not_an_overview(bundle):
+    bundle_path, _ = bundle
+    (bundle_path / "README.md").write_text("# Results\n", encoding="utf-8")
+    _reseal(bundle_path, "README.md")
+
+    integrity = verify_bundle(bundle_path)
+
+    assert not integrity.valid
+    assert any("README.md" in error and "overview" in error for error in integrity.errors)
+
+
+def test_bundle_rejects_resealed_readme_with_false_provenance(bundle):
+    bundle_path, receipt = bundle
+    readme_path = bundle_path / "README.md"
+    readme = readme_path.read_text(encoding="utf-8")
+    readme_path.write_text(
+        readme.replace(receipt.workflow_url, "https://example.com/not-the-workflow"),
+        encoding="utf-8",
+    )
+    _reseal(bundle_path, "README.md")
+
+    integrity = verify_bundle(bundle_path)
+
+    assert not integrity.valid
+    assert any("README.md" in error and "provenance" in error for error in integrity.errors)
+
+
+def test_bundle_rejects_unknown_readme_schema(bundle):
+    bundle_path, _ = bundle
+    manifest_path = bundle_path / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    readme_entry = next(entry for entry in manifest["files"] if entry["path"] == "README.md")
+    readme_entry["schema"] = "fall-ai-studio/bundle-readme/v999"
+    manifest_path.write_text(
+        json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
+    integrity_path = bundle_path / "integrity.json"
+    integrity = json.loads(integrity_path.read_text(encoding="utf-8"))
+    integrity["manifest_sha256"] = _sha256(manifest_path)
+    integrity_path.write_text(
+        json.dumps(integrity, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
+
+    result = verify_bundle(bundle_path)
+
+    assert not result.valid
+    assert any("README.md" in error and "schema" in error for error in result.errors)
+
+
 def test_bundle_rejects_resealed_false_source_and_workflow_provenance(bundle):
     bundle_path, _ = bundle
     receipt_path = bundle_path / "run-receipt.json"
@@ -281,7 +374,7 @@ def test_bundle_rejects_duplicate_manifest_entries(bundle):
 
     integrity = verify_bundle(bundle_path)
     assert not integrity.valid
-    assert integrity.checked_files == 9
+    assert integrity.checked_files == len(CONTENT_FILES) + 1
     assert any("duplicate" in error for error in integrity.errors)
 
 
@@ -323,6 +416,7 @@ def test_failed_assembly_leaves_no_partial_destination(bundle, tmp_path):
     ("filename", "mutate"),
     [
         ("manifest.json", lambda document: document.update({"required_files": None})),
+        ("run-receipt.json", lambda document: document.update({"source": []})),
         (
             "evaluation-plan.json",
             lambda document: document.update({"baseline_positions": [{}]}),
@@ -346,6 +440,30 @@ def test_malformed_documents_return_integrity_errors(bundle, filename, mutate):
         _reseal(bundle_path, filename)
 
     assert not verify_bundle(bundle_path).valid
+
+
+@pytest.mark.parametrize(
+    "filename",
+    [
+        "run-receipt.json",
+        "summary.json",
+        "evaluation-plan.json",
+        "reference-deck.json",
+        "replay.json",
+        "integrity.json",
+    ],
+)
+def test_bundle_rejects_non_object_documents(bundle, filename):
+    bundle_path, _ = bundle
+    path = bundle_path / filename
+    path.write_text("[]\n", encoding="utf-8")
+    if filename != "integrity.json":
+        _reseal(bundle_path, filename)
+
+    integrity = verify_bundle(bundle_path)
+
+    assert not integrity.valid
+    assert any(filename in error and "object" in error for error in integrity.errors)
 
 
 def test_bundle_rejects_undeclared_directories_and_symlinks(bundle, tmp_path):

@@ -103,7 +103,8 @@ truth.
 
 `pyproject.toml`, `uv.lock`, `requirements.txt`, `.python-version`, `.github/workflows/checks.yml`,
 and repository templates. The later Run Receipt records the resolved Python and dependency versions
-from these artifacts.
+from these artifacts, while the bundle README explains the reproducible foundation used for the
+completed work.
 
 ### Acceptance criteria
 
@@ -112,7 +113,7 @@ from these artifacts.
 - [ ] PR checks run Ruff format, Ruff lint, interface tests, data-contract checks, and committed
       Bundle Integrity checks without executing CABT matches.
 - [ ] The Issue and pull request templates require outcome, Artifact, verification, risk, and
-      dependency evidence.
+      dependency evidence, plus the intended bundle README contribution.
 
 ### Verification
 
@@ -173,7 +174,11 @@ a card or silently selecting the alternate export would corrupt deck and analysi
 
 The Catalog module, data-contract tests, Source Receipt, data guide, and
 `notebooks/01_card_catalog_exploration.ipynb`. The Source Receipt becomes the manifest's source
-relationship.
+relationship. The later bundle README reports the EDA findings, source anomalies, normalization and
+aggregation choices, preserved source content, and downstream implications. That summary includes
+the source shape, action and stage/type distributions, structural missingness and the no-imputation
+decision, the retained no-action records, the in-memory header correction, and why the alternate
+English export was not combined with the authoritative source.
 
 ### Acceptance criteria
 
@@ -184,6 +189,8 @@ relationship.
 - [ ] A repeated Card ID with inconsistent card-level fields raises a validation error.
 - [ ] The notebook imports the Catalog rather than reimplementing parsing and records anomalies and
       limitations with one compact visualization.
+- [ ] Its findings and handling decisions are concise enough to carry into the bundle README without
+      requiring a reviewer to rerun or read the notebook.
 
 ### Verification
 
@@ -241,7 +248,9 @@ transparent and stable enough to inspect without being mistaken for a competitiv
 ### Artifacts and Bundle contribution
 
 `config/reference-deck.json`, the Battle module, recorded observation fixtures, and public-interface
-tests. The exact deck and dependency version are copied into the later bundle.
+tests. The exact deck and dependency version are copied into the later bundle, whose README explains
+the implemented policy, the Integration Control distinction, and what the smoke evidence does and
+does not establish.
 
 ### Acceptance criteria
 
@@ -290,13 +299,16 @@ with zero invalid or errored episodes.
 ### Context
 
 Acceptance evidence must identify the code, source, deck, environment, settings, results, and
-interpretation. Loose output files or a successful command without provenance are not an Artifact
-Bundle.
+interpretation. It must also give the next reader a self-contained overview of the completed work,
+findings, handling decisions, limitations, and detailed evidence. Loose output files, a successful
+command without provenance, or a bundle with only a file list are not an Artifact Bundle.
 
 ### In scope
 
 - Balanced Evaluation Plan and structured Match Results.
 - GitHub Actions acceptance workflow from an explicit protected-`main` commit.
+- A bundle `README.md` covering completed setup, EDA, baseline implementation, evaluation findings,
+  handling decisions, limitations, verification, and an evidence-file guide.
 - Run Receipt, manifest, hashes, summary, representative replay, interpretation, and limitations.
 - Candidate archive upload for inspection and later unchanged release attachment.
 
@@ -309,13 +321,20 @@ Bundle.
 
 The complete candidate directory `output/september-baseline-v1/` and
 `september-baseline-v1.zip`, uploaded by the Workflow Run. After inspection, the unchanged directory
-is committed at `artifacts/september-baseline-v1/` through a pull request.
+is committed at `artifacts/september-baseline-v1/` through a pull request. Its `README.md` is the
+human entry point; the manifest and integrity report prove that overview travels with the detailed
+evidence.
 
 ### Acceptance criteria
 
 - [ ] Exactly 20 matches complete, with 10 from each Baseline Agent position.
 - [ ] The summary reports zero invalid or errored matches and position-aware win/loss/draw counts.
-- [ ] The bundle contains all ten required files and passes recomputed Bundle Integrity.
+- [ ] The bundle contains all eleven required files and passes recomputed Bundle Integrity.
+- [ ] `README.md` summarizes the work completed across predecessor Issues; reports the EDA findings
+      (including source shape, action and stage/type distributions, structural missingness, and
+      source-selection implications) and how they were handled; states the baseline results and
+      limitations; and links both candidate and committed verification commands plus the detailed
+      evidence files.
 - [ ] The manifest names the evaluated commit, authoritative source hash, deck hash, dependency
       versions, configuration, and workflow URL.
 - [ ] Interpretation makes no competitive or seeded-repeatability claim.
@@ -365,7 +384,8 @@ rerun. Live teams should additionally use a different real person.
 ### In scope
 
 - Fresh GitHub Actions checkout and `uv sync --frozen`.
-- Recomputed Bundle Integrity and repeated 20-match Evaluation Plan.
+- Recomputed Bundle Integrity, including the manifested README overview, and repeated 20-match
+  Evaluation Plan.
 - Machine-readable verification receipt with original and rerun outcomes.
 - Milestone handoff, annotated tag, GitHub Release, and unchanged acceptance archive.
 
@@ -382,6 +402,8 @@ the annotated tag/release. Verification is evidence about the bundle; it does no
 ### Acceptance criteria
 
 - [ ] A fresh workflow verifies all bundle files, hashes, schemas, and source/config relationships.
+- [ ] The README provides an accurate handoff from completed work and findings to the supporting
+      evidence, including EDA handling decisions, limitations, and verification instructions.
 - [ ] The rerun completes 20 matches with 10 per position and zero invalid or errored matches.
 - [ ] Original and rerun outcome counts are both recorded; equality is not required.
 - [ ] The Issue explicitly states that technical independence is not second-human review.
