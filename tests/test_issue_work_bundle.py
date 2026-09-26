@@ -151,3 +151,14 @@ def test_issue_work_bundle_rejects_unreported_extra_file(issue_work_bundle: Path
 
     assert not result.valid
     assert any("Undeclared file: notes.txt" in error for error in result.errors)
+
+
+def test_issue_work_bundle_rejects_unreported_empty_directory(
+    issue_work_bundle: Path,
+) -> None:
+    (issue_work_bundle / "empty-notes").mkdir()
+
+    result = verify_bundle(issue_work_bundle)
+
+    assert not result.valid
+    assert any("Undeclared directory: empty-notes" in error for error in result.errors)

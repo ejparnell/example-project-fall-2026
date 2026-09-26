@@ -603,13 +603,16 @@ def _verify_issue_work_bundle(bundle: Path) -> IntegrityResult:
         return IntegrityResult(False, 0, (f"Bundle directory does not exist: {bundle}",), "")
 
     actual_files: set[str] = set()
+    actual_directories: set[str] = set()
     for artifact in bundle.rglob("*"):
         relative_path = artifact.relative_to(bundle).as_posix()
         if artifact.is_symlink():
             errors.append(f"Bundle entry must not be a symbolic link: {relative_path}")
         elif artifact.is_file():
             actual_files.add(relative_path)
-        elif not artifact.is_dir():
+        elif artifact.is_dir():
+            actual_directories.add(relative_path)
+        else:
             errors.append(f"Unsupported bundle entry: {relative_path}")
 
     manifest_path = bundle / "manifest.json"
@@ -671,6 +674,14 @@ def _verify_issue_work_bundle(bundle: Path) -> IntegrityResult:
         errors.append(f"Missing required file: {missing}")
     for extra in sorted(actual_files - expected_files):
         errors.append(f"Undeclared file: {extra}")
+    expected_directories = {
+        parent.as_posix()
+        for name in required_names
+        for parent in PurePosixPath(name).parents
+        if parent != PurePosixPath(".")
+    }
+    for extra in sorted(actual_directories - expected_directories):
+        errors.append(f"Undeclared directory: {extra}")
 
     entries = manifest.get("files")
     if not isinstance(entries, list):

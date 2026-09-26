@@ -30,7 +30,7 @@ addopts = "-ra"
 testpaths = ["tests"]
 
 [tool.ruff]
-exclude = ["notebooks"]
+exclude = ["artifacts", "notebooks"]
 line-length = 100
 target-version = "py311"
 
