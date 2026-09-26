@@ -85,6 +85,12 @@ step. The README explains the work completed, findings, how noteworthy condition
 limitations, verification steps, and where to find the detailed evidence. Partial and failed work
 is not an approved bundle.
 
+Each completed Issue contributes an Issue Work Bundle under `artifacts/issue-N-short-name/`. Its
+README reports what was done, and its `files/` tree carries exact snapshots of every source,
+configuration, automation, documentation, and test file needed to review that Issue's delivery.
+The manifest binds those files to the Issue and source commit. Monthly acceptance bundles remain a
+separate workflow-owned type and cannot be approved by local Issue work.
+
 The September workflow produces:
 
 - a README overview of the completed setup, source exploration, baseline implementation, and

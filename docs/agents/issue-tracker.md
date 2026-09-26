@@ -20,3 +20,18 @@ Use the body contract in `.github/ISSUE_TEMPLATE/work-item.yml` and the prepared
 Do not fabricate timestamps, approvals, people, dependency state, workflow evidence, or completion.
 Record native blocking links where available and retain the same edges in each Issue's dependency
 section.
+
+## Work and close
+
+1. Select an unblocked Issue, assign the real contributor, and leave a short pickup comment naming
+   the branch and intended verification. Do not assign fictional narrative participants.
+2. Create a short-lived `issue/NUMBER-short-name` branch from current `main`.
+3. Open one focused pull request with `Closes #NUMBER`, a passing check run, and a complete Issue
+   Work Bundle under `artifacts/issue-N-short-name/`.
+4. Keep the Issue open until the pull request is merged. Merge with a merge commit after required
+   checks pass, then delete the short-lived branch.
+5. After GitHub closes the Issue, add a brief closing comment summarizing the delivered outcome,
+   linked pull request, bundle README, verification evidence, limitations, and newly unblocked work.
+
+The closing comment is the concise tracker handoff. The bundle README is the detailed report and
+must carry the exact supporting files rather than relying on the comment or pull request history.

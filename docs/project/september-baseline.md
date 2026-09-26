@@ -101,10 +101,12 @@ truth.
 
 ### Artifacts and Bundle contribution
 
-`pyproject.toml`, `uv.lock`, `requirements.txt`, `.python-version`, `.github/workflows/checks.yml`,
-and repository templates. The later Run Receipt records the resolved Python and dependency versions
-from these artifacts, while the bundle README explains the reproducible foundation used for the
-completed work.
+The Issue Work Bundle at `artifacts/issue-1-reproducible-project/`, containing its report README,
+verification receipt, manifest, and exact snapshots of `pyproject.toml`, `uv.lock`,
+`requirements.txt`, `.python-version`, `.github/workflows/checks.yml`, the repository templates,
+the public CLI entry point, and the decisions and tests needed to review this Issue. The later
+milestone Run Receipt records the resolved Python and dependency versions, while the milestone
+bundle README explains how this reproducible foundation supported the completed September work.
 
 ### Acceptance criteria
 
@@ -114,6 +116,8 @@ completed work.
       Bundle Integrity checks without executing CABT matches.
 - [ ] The Issue and pull request templates require outcome, Artifact, verification, risk, and
       dependency evidence, plus the intended bundle README contribution.
+- [ ] `artifacts/issue-1-reproducible-project/` passes recomputed Bundle Integrity and its README
+      reports the completed setup, files delivered, verification evidence, and limitations.
 
 ### Verification
 
@@ -122,6 +126,7 @@ uv sync --frozen --all-groups
 uv run ruff format --check .
 uv run ruff check .
 uv run pytest
+uv run fall-ai-studio verify-bundle artifacts/issue-1-reproducible-project
 ```
 
 The linked pull request must show the successful `Pull request checks` workflow.

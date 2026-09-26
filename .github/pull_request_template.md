@@ -12,7 +12,7 @@ Closes #
 
 ## Artifacts and Bundle impact
 
-<!-- Name created/changed artifacts and whether an approved bundle or its README overview is affected. -->
+<!-- Link the Issue Work Bundle README and name its captured files. State separately whether an approved milestone bundle is affected. -->
 
 ## Dependencies and related work
 
@@ -29,3 +29,7 @@ Closes #
 ## Review guidance
 
 <!-- Direct a reviewer to the interfaces, decisions, or evidence that deserve attention. -->
+
+## Closure handoff
+
+<!-- Draft the brief post-merge Issue comment: outcome, PR, bundle, verification, limitations, and unblocked work. -->

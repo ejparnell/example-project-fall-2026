@@ -13,7 +13,7 @@ from collections import Counter
 from collections.abc import Mapping
 from dataclasses import asdict, dataclass
 from importlib import metadata
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 from fall_ai_studio.battle import EvaluationResult
@@ -35,6 +35,8 @@ MATCH_SCHEMA = "fall-ai-studio/match-result/v1"
 SUMMARY_SCHEMA = "fall-ai-studio/evaluation-summary/v1"
 VERIFICATION_SCHEMA = "fall-ai-studio/independent-verification/v1"
 BUNDLE_README_SCHEMA = "fall-ai-studio/bundle-readme/v1"
+ISSUE_WORK_BUNDLE_SCHEMA = "fall-ai-studio/issue-work-bundle/v1"
+ISSUE_VERIFICATION_SCHEMA = "fall-ai-studio/issue-verification/v1"
 SUPPORTED_BUNDLE_README_SCHEMAS = (BUNDLE_README_SCHEMA,)
 REQUIRED_BUNDLE_FILES = (
     "README.md",
@@ -572,7 +574,200 @@ def _assemble_bundle_contents(
 def verify_bundle(path: str | Path) -> IntegrityResult:
     """Recompute Bundle Integrity without trusting the stored integrity report."""
 
-    return _verify_bundle(Path(path), require_integrity=True)
+    bundle = Path(path)
+    manifest_path = bundle / "manifest.json"
+    if manifest_path.is_file() and not manifest_path.is_symlink():
+        try:
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError, UnicodeError):
+            manifest = None
+        if isinstance(manifest, dict) and manifest.get("schema") == ISSUE_WORK_BUNDLE_SCHEMA:
+            return _verify_issue_work_bundle(bundle)
+    return _verify_bundle(bundle, require_integrity=True)
+
+
+def _safe_bundle_path(value: object) -> str | None:
+    if not isinstance(value, str) or not value or "\\" in value:
+        return None
+    path = PurePosixPath(value)
+    if path.is_absolute() or any(part in {"", ".", ".."} for part in path.parts):
+        return None
+    return value
+
+
+def _verify_issue_work_bundle(bundle: Path) -> IntegrityResult:
+    """Verify a report-style Issue Work Bundle and every source snapshot it declares."""
+
+    errors: list[str] = []
+    if bundle.is_symlink() or not bundle.is_dir():
+        return IntegrityResult(False, 0, (f"Bundle directory does not exist: {bundle}",), "")
+
+    actual_files: set[str] = set()
+    for artifact in bundle.rglob("*"):
+        relative_path = artifact.relative_to(bundle).as_posix()
+        if artifact.is_symlink():
+            errors.append(f"Bundle entry must not be a symbolic link: {relative_path}")
+        elif artifact.is_file():
+            actual_files.add(relative_path)
+        elif not artifact.is_dir():
+            errors.append(f"Unsupported bundle entry: {relative_path}")
+
+    manifest_path = bundle / "manifest.json"
+    manifest_hash = (
+        _sha256(manifest_path) if manifest_path.is_file() and not manifest_path.is_symlink() else ""
+    )
+    if not manifest_path.is_file() or manifest_path.is_symlink():
+        errors.append("Missing required file: manifest.json")
+        return IntegrityResult(False, 0, tuple(errors), manifest_hash)
+    manifest = _read_json(manifest_path, "manifest.json", errors)
+    if not isinstance(manifest, dict):
+        return IntegrityResult(False, 0, tuple(errors), manifest_hash)
+    if manifest.get("schema") != ISSUE_WORK_BUNDLE_SCHEMA:
+        errors.append("manifest.json has an unsupported Issue Work Bundle schema")
+    if manifest.get("bundle_id") != bundle.name:
+        errors.append("Issue Work Bundle bundle_id does not match its directory")
+    created_at = manifest.get("created_at")
+    if not isinstance(created_at, str) or not created_at.endswith("Z"):
+        errors.append("Issue Work Bundle created_at must be a UTC timestamp")
+    source_commit = manifest.get("source_commit")
+    if not isinstance(source_commit, str) or re.fullmatch(r"[0-9a-f]{40}", source_commit) is None:
+        errors.append("Issue Work Bundle source_commit must be a full lowercase commit SHA")
+
+    issue = manifest.get("issue")
+    issue_number: int | None = None
+    if isinstance(issue, dict):
+        candidate_number = issue.get("number")
+        title = issue.get("title")
+        url = issue.get("url")
+        if type(candidate_number) is int and candidate_number > 0:
+            issue_number = candidate_number
+        if not isinstance(title, str) or not title.strip():
+            errors.append("Issue Work Bundle issue title must be non-empty")
+        expected_url = (
+            f"https://github.com/ejparnell/example-project-fall-2026/issues/{candidate_number}"
+        )
+        if issue_number is None or url != expected_url:
+            errors.append("Issue Work Bundle issue relationship is invalid")
+    else:
+        errors.append("Issue Work Bundle issue relationship is invalid")
+
+    required_files = manifest.get("required_files")
+    required_names: set[str] = set()
+    if isinstance(required_files, list) and all(
+        _safe_bundle_path(name) is not None for name in required_files
+    ):
+        required_names = set(required_files)
+        if len(required_names) != len(required_files):
+            errors.append("manifest.json required_files contains duplicate paths")
+    else:
+        errors.append("manifest.json required_files is not a safe path list")
+    if not {"README.md", "verification.json"}.issubset(required_names):
+        errors.append("Issue Work Bundle must contain README.md and verification.json")
+    if not any(name.startswith("files/") for name in required_names):
+        errors.append("Issue Work Bundle must contain at least one delivered source file")
+
+    expected_files = required_names | {"manifest.json"}
+    for missing in sorted(expected_files - actual_files):
+        errors.append(f"Missing required file: {missing}")
+    for extra in sorted(actual_files - expected_files):
+        errors.append(f"Undeclared file: {extra}")
+
+    entries = manifest.get("files")
+    if not isinstance(entries, list):
+        errors.append("manifest.json file inventory is not a list")
+        entries = []
+    entry_names = [entry.get("path") for entry in entries if isinstance(entry, dict)]
+    if (
+        len(entry_names) != len(entries)
+        or any(_safe_bundle_path(name) is None for name in entry_names)
+        or len(set(entry_names)) != len(entry_names)
+        or set(entry_names) != required_names
+    ):
+        errors.append(
+            "manifest.json file inventory contains duplicate or unsafe paths, or does not match "
+            "required_files"
+        )
+
+    checked = 0
+    payload_paths: list[str] = []
+    for entry in entries:
+        if not isinstance(entry, dict):
+            errors.append("manifest.json contains an invalid file entry")
+            continue
+        name = _safe_bundle_path(entry.get("path"))
+        if name is None:
+            continue
+        if name.startswith("files/"):
+            payload_paths.append(name)
+            if entry.get("source_path") != name.removeprefix("files/"):
+                errors.append(f"{name} source path does not match its bundle location")
+        elif "source_path" in entry:
+            errors.append(f"{name} must not declare a source path")
+        artifact = bundle / name
+        if artifact.is_symlink() or not artifact.is_file():
+            continue
+        checked += 1
+        if _sha256(artifact) != entry.get("sha256"):
+            errors.append(f"{name} SHA-256 mismatch")
+        if artifact.stat().st_size != entry.get("bytes"):
+            errors.append(f"{name} byte-size mismatch")
+    if checked != len(required_names):
+        errors.append("Recomputed checked-file count does not match the Issue Work Bundle")
+
+    readme = _read_text(bundle / "README.md", "README.md", errors)
+    if readme is not None:
+        required_sections = (
+            "## Outcome",
+            "## Work completed",
+            "## Files delivered",
+            "## Verification",
+            "## Risks and limitations",
+        )
+        for section in required_sections:
+            if section not in readme:
+                errors.append(f"README.md is missing report section: {section}")
+        if issue_number is not None and f"#{issue_number}" not in readme:
+            errors.append("README.md does not identify its Issue")
+        for payload_path in payload_paths:
+            if payload_path not in readme:
+                errors.append(f"README.md does not guide readers to {payload_path}")
+
+    verification = _read_json(bundle / "verification.json", "verification.json", errors)
+    if isinstance(verification, dict):
+        if verification.get("schema") != ISSUE_VERIFICATION_SCHEMA:
+            errors.append("verification.json has an unsupported schema")
+        if verification.get("issue_number") != issue_number:
+            errors.append("verification.json issue relationship does not match the manifest")
+        if verification.get("source_commit") != source_commit:
+            errors.append("verification.json source commit does not match the manifest")
+        if verification.get("status") != "passed":
+            errors.append("verification.json does not record successful verification")
+        environment = verification.get("environment")
+        if not isinstance(environment, dict) or not all(
+            isinstance(name, str) and isinstance(value, str) and value
+            for name, value in environment.items()
+        ):
+            errors.append("verification.json environment must contain string versions")
+        commands = verification.get("commands")
+        if not isinstance(commands, list) or not commands:
+            errors.append("verification.json must contain executed commands")
+        else:
+            for command in commands:
+                if (
+                    not isinstance(command, dict)
+                    or not isinstance(command.get("command"), str)
+                    or not command["command"]
+                    or type(command.get("exit_code")) is not int
+                    or command["exit_code"] != 0
+                    or not isinstance(command.get("result"), str)
+                    or not command["result"]
+                ):
+                    errors.append("verification.json contains an unsuccessful command result")
+                    break
+    elif verification is not None:
+        errors.append("verification.json is not an object")
+
+    return IntegrityResult(not errors, checked, tuple(errors), manifest_hash)
 
 
 def _read_json(path: Path, label: str, errors: list[str]) -> Any | None:
