@@ -12,7 +12,7 @@ Closes #
 
 ## Artifacts and Bundle impact
 
-<!-- Name created/changed artifacts and whether an approved bundle is affected. -->
+<!-- Name created/changed artifacts and whether an approved bundle or its README overview is affected. -->
 
 ## Dependencies and related work
 
