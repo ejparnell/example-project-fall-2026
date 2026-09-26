@@ -3,7 +3,7 @@
 This is the detailed completion report for
 [Issue #1](https://github.com/ejparnell/example-project-fall-2026/issues/1), **Establish
 reproducible Python project and automated checks**. The evidence is tied to source commit
-`276a0335e1a6ac5e86edcab67dc2636e10b66608` and includes portable Git history for independently
+`b14ddda9d5b907bdaad2f04f9dad9261001da859` and includes portable Git history for independently
 checking that relationship.
 
 ## Outcome
@@ -84,10 +84,10 @@ with no pre-existing project virtual environment. The complete machine-readable 
 | `uv export --frozen --no-dev --format requirements-txt --output-file requirements.txt` plus `git diff --exit-code -- requirements.txt` | Regenerated output exactly matched the committed export. |
 | `uv run ruff format --check .` | Passed; 10 files already formatted. |
 | `uv run ruff check .` | Passed with no lint findings. |
-| `uv run pytest -q` | Passed; 48 tests in 5.56 seconds. |
+| `uv run pytest -q` | Passed; 52 tests in 6.87 seconds. |
 | `uv run fall-ai-studio --help` | Passed and exposed the installed public CLI. |
-| `git bundle verify artifacts/issue-1-reproducible-project/source.git.bundle` | Passed; the bundle contains commit `276a0335e1a6ac5e86edcab67dc2636e10b66608` and complete history. |
-| Compare every manifested `source_path` with commit `276a0335e1a6ac5e86edcab67dc2636e10b66608` | All 21 delivered snapshots byte-matched the declared source commit. |
+| `git bundle verify artifacts/issue-1-reproducible-project/source.git.bundle` | Passed; the bundle contains commit `b14ddda9d5b907bdaad2f04f9dad9261001da859` and complete history. |
+| Compare every manifested `source_path` with commit `b14ddda9d5b907bdaad2f04f9dad9261001da859` | All 21 delivered snapshots byte-matched the declared source commit. |
 
 Recompute integrity in the repository:
 

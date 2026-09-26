@@ -1,11 +1,11 @@
 {
   "bundle_id": "issue-1-reproducible-project",
-  "created_at": "2026-09-26T22:12:20Z",
+  "created_at": "2026-09-26T22:25:46Z",
   "files": [
     {
       "bytes": 9147,
       "path": "README.md",
-      "sha256": "17d8110d6302d6a9dd758266df7ee3149ebb4c6f73761699159abe63cb1eddfc"
+      "sha256": "235575548f4ad7da9ca9722fc382a247a59d8bfa960a149655bfe293c197d88c"
     },
     {
       "bytes": 46,
@@ -44,9 +44,9 @@
       "source_path": "README.md"
     },
     {
-      "bytes": 3056,
+      "bytes": 3316,
       "path": "files/artifacts/README.md",
-      "sha256": "e6e1e64935e3ff1696d7d90cc657c7b0edd8518f01fcd200b7c8e8fdac97d2b6",
+      "sha256": "bd10709d66dd1589a1b5d0173c4c3252887265adda0e4253de7333523aea6ac3",
       "source_path": "artifacts/README.md"
     },
     {
@@ -116,15 +116,15 @@
       "source_path": "src/fall_ai_studio/cli.py"
     },
     {
-      "bytes": 60038,
+      "bytes": 60719,
       "path": "files/src/fall_ai_studio/evidence.py",
-      "sha256": "6c6123832e5cd7b8d663f2385678e7bb0dee32cd0c8563548c7aaa93e601522e",
+      "sha256": "ebd137b53381a27841a3f878e8a93370147fc66a18606c6f4b6873056449eba8",
       "source_path": "src/fall_ai_studio/evidence.py"
     },
     {
-      "bytes": 9864,
+      "bytes": 12353,
       "path": "files/tests/test_issue_work_bundle.py",
-      "sha256": "7481646ebd0490e55cd96a39e6d1744b5f07629f25858717b5cd1c7f4a09152a",
+      "sha256": "cde07aa140a126b63a91921cb7724b55774db369e9dbbf0729ee3defa6eecab7",
       "source_path": "tests/test_issue_work_bundle.py"
     },
     {
@@ -134,14 +134,14 @@
       "source_path": "uv.lock"
     },
     {
-      "bytes": 353789,
+      "bytes": 711581,
       "path": "source.git.bundle",
-      "sha256": "400a3c34c239945ddc0e881483089ce002a521d4b0c5a88260a4eec20ba88c46"
+      "sha256": "ca098f21810583a0e14980bdd9807d64572ecdb53942ad790827214a7548c5bb"
     },
     {
-      "bytes": 1983,
+      "bytes": 2104,
       "path": "verification.json",
-      "sha256": "c4105abf70ea8aa424a10588aa4680042796ff5d85c9d5a0911539b93557e5f8"
+      "sha256": "01c1aa65a2bf4097d7c7062289adde0f6a2bd4b3ffbcf926ce3eab2b5753ff6d"
     }
   ],
   "issue": {
@@ -176,5 +176,5 @@
     "verification.json"
   ],
   "schema": "fall-ai-studio/issue-work-bundle/v1",
-  "source_commit": "276a0335e1a6ac5e86edcab67dc2636e10b66608"
+  "source_commit": "b14ddda9d5b907bdaad2f04f9dad9261001da859"
 }

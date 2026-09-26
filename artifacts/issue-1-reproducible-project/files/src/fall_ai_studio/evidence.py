@@ -44,7 +44,7 @@ ISSUE_1_REQUIRED_COMMANDS = (
     "uv export --frozen --no-dev --format requirements-txt --output-file requirements.txt",
     "uv run ruff format --check .",
     "uv run ruff check .",
-    "uv run pytest",
+    "uv run pytest -q",
     "uv run fall-ai-studio --help",
 )
 SUPPORTED_BUNDLE_README_SCHEMAS = (BUNDLE_README_SCHEMA,)
@@ -605,6 +605,19 @@ def _safe_bundle_path(value: object) -> str | None:
     return value
 
 
+def _regular_bundle_file(bundle: Path, name: str) -> Path | None:
+    """Return a regular bundle file without following a symlinked path component."""
+
+    relative_path = PurePosixPath(name)
+    for parent in relative_path.parents:
+        if parent != PurePosixPath(".") and (bundle / parent.as_posix()).is_symlink():
+            return None
+    artifact = bundle / name
+    if artifact.is_symlink() or not artifact.is_file():
+        return None
+    return artifact
+
+
 def _git_repository_root(path: Path) -> Path | None:
     try:
         result = subprocess.run(
@@ -633,7 +646,7 @@ def _verify_issue_source_snapshots(
     if not isinstance(source_commit, str):
         return
 
-    def compare(repository: Path, *, provenance: str) -> bool:
+    def compare(repository: Path, *, provenance: str, require_commit: bool = True) -> bool:
         try:
             commit = subprocess.run(
                 [
@@ -649,10 +662,12 @@ def _verify_issue_source_snapshots(
                 timeout=10,
             )
         except (OSError, subprocess.TimeoutExpired) as error:
-            errors.append(f"Issue Work Bundle source commit could not be checked: {error}")
+            if require_commit:
+                errors.append(f"Issue Work Bundle source commit could not be checked: {error}")
             return False
         if commit.returncode != 0:
-            errors.append(f"Issue Work Bundle source commit is not available in {provenance}")
+            if require_commit:
+                errors.append(f"Issue Work Bundle source commit is not available in {provenance}")
             return False
         for entry in entries:
             if not isinstance(entry, dict):
@@ -660,6 +675,9 @@ def _verify_issue_source_snapshots(
             name = _safe_bundle_path(entry.get("path"))
             source_path = _safe_bundle_path(entry.get("source_path"))
             if name is None or source_path is None or not name.startswith("files/"):
+                continue
+            artifact = _regular_bundle_file(bundle, name)
+            if artifact is None:
                 continue
             try:
                 source = subprocess.run(
@@ -673,7 +691,7 @@ def _verify_issue_source_snapshots(
                 continue
             if source.returncode != 0:
                 errors.append(f"{name} is not present at its declared source commit")
-            elif source.stdout != (bundle / name).read_bytes():
+            elif source.stdout != artifact.read_bytes():
                 errors.append(f"{name} does not match source commit {source_commit}")
         return True
 
@@ -708,7 +726,7 @@ def _verify_issue_source_snapshots(
     repository = _git_repository_root(bundle)
     if repository is None:
         return
-    compare(repository, provenance="this repository")
+    compare(repository, provenance="this repository", require_commit=False)
 
 
 def _verify_issue_work_bundle(bundle: Path) -> IntegrityResult:
@@ -837,8 +855,8 @@ def _verify_issue_work_bundle(bundle: Path) -> IntegrityResult:
                 errors.append(f"{name} source path does not match its bundle location")
         elif "source_path" in entry:
             errors.append(f"{name} must not declare a source path")
-        artifact = bundle / name
-        if artifact.is_symlink() or not artifact.is_file():
+        artifact = _regular_bundle_file(bundle, name)
+        if artifact is None:
             continue
         checked += 1
         if _sha256(artifact) != entry.get("sha256"):
@@ -891,7 +909,7 @@ def _verify_issue_work_bundle(bundle: Path) -> IntegrityResult:
             not isinstance(environment, dict)
             or not ISSUE_BUNDLE_ENVIRONMENT_FIELDS.issubset(environment)
             or not all(
-                isinstance(name, str) and isinstance(value, str) and value
+                isinstance(name, str) and isinstance(value, str) and value.strip()
                 for name, value in environment.items()
             )
         ):
@@ -907,18 +925,18 @@ def _verify_issue_work_bundle(bundle: Path) -> IntegrityResult:
                 if (
                     not isinstance(command, dict)
                     or not isinstance(command.get("command"), str)
-                    or not command["command"]
+                    or not command["command"].strip()
                     or type(command.get("exit_code")) is not int
                     or command["exit_code"] != 0
                     or not isinstance(command.get("result"), str)
-                    or not command["result"]
+                    or not command["result"].strip()
                 ):
                     errors.append("verification.json contains an unsuccessful command result")
                     break
                 command_names.append(command["command"])
         if issue_number == 1:
             for required_command in ISSUE_1_REQUIRED_COMMANDS:
-                if not any(command.startswith(required_command) for command in command_names):
+                if required_command not in command_names:
                     errors.append(
                         f"verification.json is missing required Issue #1 command: "
                         f"{required_command}"
