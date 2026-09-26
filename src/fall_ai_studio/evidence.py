@@ -7,6 +7,7 @@ import json
 import math
 import re
 import shutil
+import subprocess
 import sys
 import tempfile
 from collections import Counter
@@ -37,6 +38,15 @@ VERIFICATION_SCHEMA = "fall-ai-studio/independent-verification/v1"
 BUNDLE_README_SCHEMA = "fall-ai-studio/bundle-readme/v1"
 ISSUE_WORK_BUNDLE_SCHEMA = "fall-ai-studio/issue-work-bundle/v1"
 ISSUE_VERIFICATION_SCHEMA = "fall-ai-studio/issue-verification/v1"
+ISSUE_BUNDLE_ENVIRONMENT_FIELDS = frozenset({"checkout", "platform", "python", "uv"})
+ISSUE_1_REQUIRED_COMMANDS = (
+    "uv sync --frozen --all-groups",
+    "uv export --frozen --no-dev --format requirements-txt --output-file requirements.txt",
+    "uv run ruff format --check .",
+    "uv run ruff check .",
+    "uv run pytest",
+    "uv run fall-ai-studio --help",
+)
 SUPPORTED_BUNDLE_README_SCHEMAS = (BUNDLE_README_SCHEMA,)
 REQUIRED_BUNDLE_FILES = (
     "README.md",
@@ -595,6 +605,112 @@ def _safe_bundle_path(value: object) -> str | None:
     return value
 
 
+def _git_repository_root(path: Path) -> Path | None:
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(path), "rev-parse", "--show-toplevel"],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if result.returncode != 0:
+        return None
+    return Path(result.stdout.strip())
+
+
+def _verify_issue_source_snapshots(
+    *,
+    bundle: Path,
+    source_commit: object,
+    entries: list[object],
+    errors: list[str],
+) -> None:
+    """Compare delivered files with bundled history and the checkout, when available."""
+
+    if not isinstance(source_commit, str):
+        return
+
+    def compare(repository: Path, *, provenance: str) -> bool:
+        try:
+            commit = subprocess.run(
+                [
+                    "git",
+                    "-C",
+                    str(repository),
+                    "cat-file",
+                    "-e",
+                    f"{source_commit}^{{commit}}",
+                ],
+                check=False,
+                capture_output=True,
+                timeout=10,
+            )
+        except (OSError, subprocess.TimeoutExpired) as error:
+            errors.append(f"Issue Work Bundle source commit could not be checked: {error}")
+            return False
+        if commit.returncode != 0:
+            errors.append(f"Issue Work Bundle source commit is not available in {provenance}")
+            return False
+        for entry in entries:
+            if not isinstance(entry, dict):
+                continue
+            name = _safe_bundle_path(entry.get("path"))
+            source_path = _safe_bundle_path(entry.get("source_path"))
+            if name is None or source_path is None or not name.startswith("files/"):
+                continue
+            try:
+                source = subprocess.run(
+                    ["git", "-C", str(repository), "show", f"{source_commit}:{source_path}"],
+                    check=False,
+                    capture_output=True,
+                    timeout=10,
+                )
+            except (OSError, subprocess.TimeoutExpired) as error:
+                errors.append(f"{name} could not be compared with its source commit: {error}")
+                continue
+            if source.returncode != 0:
+                errors.append(f"{name} is not present at its declared source commit")
+            elif source.stdout != (bundle / name).read_bytes():
+                errors.append(f"{name} does not match source commit {source_commit}")
+        return True
+
+    source_history = bundle / "source.git.bundle"
+    if source_history.is_symlink() or not source_history.is_file():
+        errors.append("Issue Work Bundle is missing portable source.git.bundle history")
+    else:
+        with tempfile.TemporaryDirectory(prefix=".issue-bundle-source.") as temporary_directory:
+            portable_repository = Path(temporary_directory) / "repository"
+            try:
+                clone = subprocess.run(
+                    [
+                        "git",
+                        "clone",
+                        "--quiet",
+                        "--no-checkout",
+                        str(source_history),
+                        str(portable_repository),
+                    ],
+                    check=False,
+                    capture_output=True,
+                    timeout=30,
+                )
+            except (OSError, subprocess.TimeoutExpired) as error:
+                errors.append(f"source.git.bundle could not be read: {error}")
+            else:
+                if clone.returncode != 0:
+                    errors.append("source.git.bundle is not a usable Git history bundle")
+                else:
+                    compare(portable_repository, provenance="source.git.bundle")
+
+    repository = _git_repository_root(bundle)
+    if repository is None:
+        return
+    compare(repository, provenance="this repository")
+
+
 def _verify_issue_work_bundle(bundle: Path) -> IntegrityResult:
     """Verify a report-style Issue Work Bundle and every source snapshot it declares."""
 
@@ -653,6 +769,11 @@ def _verify_issue_work_bundle(bundle: Path) -> IntegrityResult:
             errors.append("Issue Work Bundle issue relationship is invalid")
     else:
         errors.append("Issue Work Bundle issue relationship is invalid")
+    if (
+        issue_number is not None
+        and re.fullmatch(rf"issue-{issue_number}-[a-z0-9]+(?:-[a-z0-9]+)*", bundle.name) is None
+    ):
+        errors.append("Issue Work Bundle directory name must identify its Issue number")
 
     required_files = manifest.get("required_files")
     required_names: set[str] = set()
@@ -664,8 +785,10 @@ def _verify_issue_work_bundle(bundle: Path) -> IntegrityResult:
             errors.append("manifest.json required_files contains duplicate paths")
     else:
         errors.append("manifest.json required_files is not a safe path list")
-    if not {"README.md", "verification.json"}.issubset(required_names):
-        errors.append("Issue Work Bundle must contain README.md and verification.json")
+    if not {"README.md", "source.git.bundle", "verification.json"}.issubset(required_names):
+        errors.append(
+            "Issue Work Bundle must contain README.md, source.git.bundle, and verification.json"
+        )
     if not any(name.startswith("files/") for name in required_names):
         errors.append("Issue Work Bundle must contain at least one delivered source file")
 
@@ -725,6 +848,13 @@ def _verify_issue_work_bundle(bundle: Path) -> IntegrityResult:
     if checked != len(required_names):
         errors.append("Recomputed checked-file count does not match the Issue Work Bundle")
 
+    _verify_issue_source_snapshots(
+        bundle=bundle,
+        source_commit=source_commit,
+        entries=entries,
+        errors=errors,
+    )
+
     readme = _read_text(bundle / "README.md", "README.md", errors)
     if readme is not None:
         required_sections = (
@@ -753,13 +883,23 @@ def _verify_issue_work_bundle(bundle: Path) -> IntegrityResult:
             errors.append("verification.json source commit does not match the manifest")
         if verification.get("status") != "passed":
             errors.append("verification.json does not record successful verification")
+        finished_at = verification.get("finished_at")
+        if not isinstance(finished_at, str) or not finished_at.endswith("Z"):
+            errors.append("verification.json finished_at must be a UTC timestamp")
         environment = verification.get("environment")
-        if not isinstance(environment, dict) or not all(
-            isinstance(name, str) and isinstance(value, str) and value
-            for name, value in environment.items()
+        if (
+            not isinstance(environment, dict)
+            or not ISSUE_BUNDLE_ENVIRONMENT_FIELDS.issubset(environment)
+            or not all(
+                isinstance(name, str) and isinstance(value, str) and value
+                for name, value in environment.items()
+            )
         ):
-            errors.append("verification.json environment must contain string versions")
+            errors.append(
+                "verification.json environment must identify the checkout, platform, Python, and uv"
+            )
         commands = verification.get("commands")
+        command_names: list[str] = []
         if not isinstance(commands, list) or not commands:
             errors.append("verification.json must contain executed commands")
         else:
@@ -775,6 +915,18 @@ def _verify_issue_work_bundle(bundle: Path) -> IntegrityResult:
                 ):
                     errors.append("verification.json contains an unsuccessful command result")
                     break
+                command_names.append(command["command"])
+        if issue_number == 1:
+            for required_command in ISSUE_1_REQUIRED_COMMANDS:
+                if not any(command.startswith(required_command) for command in command_names):
+                    errors.append(
+                        f"verification.json is missing required Issue #1 command: "
+                        f"{required_command}"
+                    )
+                if readme is not None and required_command not in readme:
+                    errors.append(
+                        f"README.md does not report required Issue #1 command: {required_command}"
+                    )
     elif verification is not None:
         errors.append("verification.json is not an object")
 

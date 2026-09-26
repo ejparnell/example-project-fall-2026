@@ -88,8 +88,10 @@ is not an approved bundle.
 Each completed Issue contributes an Issue Work Bundle under `artifacts/issue-N-short-name/`. Its
 README reports what was done, and its `files/` tree carries exact snapshots of every source,
 configuration, automation, documentation, and test file needed to review that Issue's delivery.
-The manifest binds those files to the Issue and source commit. Monthly acceptance bundles remain a
-separate workflow-owned type and cannot be approved by local Issue work.
+The manifest binds those files to the Issue and source commit, and a small portable Git bundle lets
+verification compare every snapshot with that commit outside the original checkout. Monthly
+acceptance bundles remain a separate workflow-owned type and cannot be approved by local Issue
+work.
 
 The September workflow produces:
 

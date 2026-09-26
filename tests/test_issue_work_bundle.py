@@ -1,5 +1,6 @@
 import hashlib
 import json
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -31,19 +32,56 @@ def _reseal(bundle: Path, changed_path: str) -> None:
 
 @pytest.fixture
 def issue_work_bundle(tmp_path: Path) -> Path:
-    bundle = tmp_path / "issue-1-reproducible-project"
+    repository = tmp_path / "repository"
+    repository.mkdir()
+    source_contents = '[project]\nrequires-python = ">=3.11,<3.12"\n'
+    (repository / "pyproject.toml").write_text(source_contents, encoding="utf-8")
+    subprocess.run(["git", "init", "--quiet"], cwd=repository, check=True)
+    subprocess.run(
+        ["git", "config", "user.email", "bundle-tests@example.com"],
+        cwd=repository,
+        check=True,
+    )
+    subprocess.run(["git", "config", "user.name", "Bundle Tests"], cwd=repository, check=True)
+    subprocess.run(["git", "add", "pyproject.toml"], cwd=repository, check=True)
+    subprocess.run(
+        ["git", "commit", "--quiet", "-m", "Add project contract"],
+        cwd=repository,
+        check=True,
+    )
+    source_commit = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=repository,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+
+    bundle = repository / "artifacts" / "issue-1-reproducible-project"
     payload = bundle / "files"
     payload.mkdir(parents=True)
-    (payload / "pyproject.toml").write_text(
-        '[project]\nrequires-python = ">=3.11,<3.12"\n', encoding="utf-8"
+    subprocess.run(
+        ["git", "bundle", "create", str(bundle / "source.git.bundle"), "--all"],
+        cwd=repository,
+        check=True,
     )
+    (payload / "pyproject.toml").write_text(source_contents, encoding="utf-8")
+    commands = [
+        "uv sync --frozen --all-groups",
+        "uv export --frozen --no-dev --format requirements-txt --output-file requirements.txt",
+        "uv run ruff format --check .",
+        "uv run ruff check .",
+        "uv run pytest -q",
+        "uv run fall-ai-studio --help",
+    ]
     (bundle / "README.md").write_text(
         "# Issue #1 Work Bundle\n\n"
         "## Outcome\n\nThe reproducible project setup is complete.\n\n"
         "## Work completed\n\nThe frozen environment and checks were verified.\n\n"
         "## Files delivered\n\n"
         "- [Project configuration](files/pyproject.toml)\n\n"
-        "## Verification\n\nAll required commands passed.\n\n"
+        "The portable source history is [source.git.bundle](source.git.bundle).\n\n"
+        "## Verification\n\n" + "\n".join(f"- `{command}`" for command in commands) + "\n\n"
         "## Risks and limitations\n\nThis does not approve simulator results.\n",
         encoding="utf-8",
     )
@@ -51,20 +89,34 @@ def issue_work_bundle(tmp_path: Path) -> Path:
         bundle / "verification.json",
         {
             "schema": ISSUE_VERIFICATION_SCHEMA,
+            "finished_at": "2026-09-26T22:00:00Z",
             "issue_number": 1,
-            "source_commit": "1" * 40,
+            "source_commit": source_commit,
             "status": "passed",
-            "environment": {"python": "3.11.13", "uv": "0.8.22"},
+            "environment": {
+                "checkout": "fresh clone",
+                "platform": "test",
+                "pytest": "8.4.2",
+                "python": "3.11.13",
+                "ruff": "0.13.3",
+                "uv": "0.12.19",
+            },
             "commands": [
                 {
-                    "command": "uv sync --frozen --all-groups",
+                    "command": command,
                     "exit_code": 0,
-                    "result": "Environment synchronized from uv.lock.",
+                    "result": "Command passed.",
                 }
+                for command in commands
             ],
         },
     )
-    content_paths = ["README.md", "verification.json", "files/pyproject.toml"]
+    content_paths = [
+        "README.md",
+        "source.git.bundle",
+        "verification.json",
+        "files/pyproject.toml",
+    ]
     entries = []
     for relative_path in content_paths:
         artifact = bundle / relative_path
@@ -82,7 +134,7 @@ def issue_work_bundle(tmp_path: Path) -> Path:
             "schema": ISSUE_WORK_BUNDLE_SCHEMA,
             "bundle_id": bundle.name,
             "created_at": "2026-09-26T22:00:00Z",
-            "source_commit": "1" * 40,
+            "source_commit": source_commit,
             "issue": {
                 "number": 1,
                 "title": "Establish reproducible Python project and automated checks",
@@ -101,7 +153,7 @@ def test_issue_work_bundle_is_a_verified_report_with_source_files(
     result = verify_bundle(issue_work_bundle)
 
     assert result.valid
-    assert result.checked_files == 3
+    assert result.checked_files == 4
     assert not result.errors
 
 
@@ -114,6 +166,20 @@ def test_issue_work_bundle_detects_tampered_source_file(issue_work_bundle: Path)
 
     assert not result.valid
     assert any("files/pyproject.toml SHA-256 mismatch" in error for error in result.errors)
+
+
+def test_issue_work_bundle_rejects_resealed_file_not_from_source_commit(
+    issue_work_bundle: Path,
+) -> None:
+    (issue_work_bundle / "files/pyproject.toml").write_text(
+        '[project]\nrequires-python = "*"\n', encoding="utf-8"
+    )
+    _reseal(issue_work_bundle, "files/pyproject.toml")
+
+    result = verify_bundle(issue_work_bundle)
+
+    assert not result.valid
+    assert any("does not match source commit" in error for error in result.errors)
 
 
 def test_issue_work_bundle_rejects_resealed_readme_without_report_sections(
@@ -162,3 +228,53 @@ def test_issue_work_bundle_rejects_unreported_empty_directory(
 
     assert not result.valid
     assert any("Undeclared directory: empty-notes" in error for error in result.errors)
+
+
+def test_issue_work_bundle_cannot_use_a_milestone_name(issue_work_bundle: Path) -> None:
+    renamed = issue_work_bundle.with_name("september-baseline-v1")
+    issue_work_bundle.rename(renamed)
+    manifest_path = renamed / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["bundle_id"] = renamed.name
+    _write_json(manifest_path, manifest)
+
+    result = verify_bundle(renamed)
+
+    assert not result.valid
+    assert any("directory name" in error for error in result.errors)
+
+
+def test_issue_work_bundle_requires_reachable_source_commit(
+    issue_work_bundle: Path,
+) -> None:
+    verification_path = issue_work_bundle / "verification.json"
+    verification = json.loads(verification_path.read_text(encoding="utf-8"))
+    verification["source_commit"] = "0" * 40
+    _write_json(verification_path, verification)
+    _reseal(issue_work_bundle, "verification.json")
+    manifest_path = issue_work_bundle / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["source_commit"] = "0" * 40
+    _write_json(manifest_path, manifest)
+
+    result = verify_bundle(issue_work_bundle)
+
+    assert not result.valid
+    assert any("source commit is not available" in error for error in result.errors)
+
+
+def test_issue_work_bundle_requires_environment_and_issue_commands(
+    issue_work_bundle: Path,
+) -> None:
+    verification_path = issue_work_bundle / "verification.json"
+    verification = json.loads(verification_path.read_text(encoding="utf-8"))
+    verification["environment"] = {}
+    verification["commands"] = [{"command": "true", "exit_code": 0, "result": "claimed success"}]
+    _write_json(verification_path, verification)
+    _reseal(issue_work_bundle, "verification.json")
+
+    result = verify_bundle(issue_work_bundle)
+
+    assert not result.valid
+    assert any("environment" in error for error in result.errors)
+    assert any("required Issue #1 command" in error for error in result.errors)
