@@ -1,0 +1,62 @@
+{
+  "commands": [
+    {
+      "command": "uv sync --frozen --all-groups",
+      "exit_code": 0,
+      "result": "Created a new Python 3.11.13 virtual environment and installed 122 packages from uv.lock."
+    },
+    {
+      "command": "uv export --frozen --no-dev --format requirements-txt --output-file requirements.txt",
+      "exit_code": 0,
+      "result": "Regenerated requirements.txt from the frozen lock."
+    },
+    {
+      "command": "git diff --exit-code -- requirements.txt",
+      "exit_code": 0,
+      "result": "The regenerated requirements.txt exactly matched the committed file."
+    },
+    {
+      "command": "uv run ruff format --check .",
+      "exit_code": 0,
+      "result": "10 files were already formatted."
+    },
+    {
+      "command": "uv run ruff check .",
+      "exit_code": 0,
+      "result": "All lint checks passed."
+    },
+    {
+      "command": "uv run pytest -q",
+      "exit_code": 0,
+      "result": "52 tests passed in 6.87 seconds."
+    },
+    {
+      "command": "uv run fall-ai-studio --help",
+      "exit_code": 0,
+      "result": "The installed public CLI returned its command help successfully."
+    },
+    {
+      "command": "git bundle verify artifacts/issue-1-reproducible-project/source.git.bundle",
+      "exit_code": 0,
+      "result": "The portable bundle contained source commit b14ddda9d5b907bdaad2f04f9dad9261001da859 and complete history."
+    },
+    {
+      "command": "For each manifest source_path, compare git show b14ddda9d5b907bdaad2f04f9dad9261001da859:<source_path> with its files/ snapshot using cmp",
+      "exit_code": 0,
+      "result": "All 21 delivered file snapshots byte-matched the declared source commit."
+    }
+  ],
+  "environment": {
+    "checkout": "fresh local clone at detached source commit",
+    "platform": "Darwin 25.6.0 arm64",
+    "pytest": "8.4.2",
+    "python": "3.11.13",
+    "ruff": "0.13.3",
+    "uv": "0.12.19"
+  },
+  "finished_at": "2026-09-26T22:25:46Z",
+  "issue_number": 1,
+  "schema": "fall-ai-studio/issue-verification/v1",
+  "source_commit": "b14ddda9d5b907bdaad2f04f9dad9261001da859",
+  "status": "passed"
+}

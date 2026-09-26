@@ -1,0 +1,180 @@
+{
+  "bundle_id": "issue-1-reproducible-project",
+  "created_at": "2026-09-26T22:25:46Z",
+  "files": [
+    {
+      "bytes": 9147,
+      "path": "README.md",
+      "sha256": "235575548f4ad7da9ca9722fc382a247a59d8bfa960a149655bfe293c197d88c"
+    },
+    {
+      "bytes": 46,
+      "path": "files/.github/ISSUE_TEMPLATE/config.yml",
+      "sha256": "8b09e7df09fc7534371988062769ee427af2954a02c04c763e8a8005be0f2be4",
+      "source_path": ".github/ISSUE_TEMPLATE/config.yml"
+    },
+    {
+      "bytes": 2782,
+      "path": "files/.github/ISSUE_TEMPLATE/work-item.yml",
+      "sha256": "d16f5a218c058c0bec77eeae3bbbe6838a05a763dedca46085c0852ccd941160",
+      "source_path": ".github/ISSUE_TEMPLATE/work-item.yml"
+    },
+    {
+      "bytes": 961,
+      "path": "files/.github/pull_request_template.md",
+      "sha256": "f7c7883b1746f849f093c80fa336408dbd578d78ee4016a07d385b2de531a138",
+      "source_path": ".github/pull_request_template.md"
+    },
+    {
+      "bytes": 1260,
+      "path": "files/.github/workflows/checks.yml",
+      "sha256": "d47313952a0c739c84eb1b8804137162239afe5cb84418fba6cd8fbd01d5c9e5",
+      "source_path": ".github/workflows/checks.yml"
+    },
+    {
+      "bytes": 5,
+      "path": "files/.python-version",
+      "sha256": "49a506dd32096b010d75205acf3430c9ae6c40351888129499e5a5e487126c93",
+      "source_path": ".python-version"
+    },
+    {
+      "bytes": 7851,
+      "path": "files/README.md",
+      "sha256": "57c2a8f48120b8aac7a91a0b3b2d0839555f4e766dc46e5fb21306b690cdbef2",
+      "source_path": "README.md"
+    },
+    {
+      "bytes": 3316,
+      "path": "files/artifacts/README.md",
+      "sha256": "bd10709d66dd1589a1b5d0173c4c3252887265adda0e4253de7333523aea6ac3",
+      "source_path": "artifacts/README.md"
+    },
+    {
+      "bytes": 950,
+      "path": "files/docs/adr/0003-use-short-lived-issue-branches.md",
+      "sha256": "e94e50a6017b6ddcd89c69369d6a736f12155a9d91af5df17c293aee6e1fcd0f",
+      "source_path": "docs/adr/0003-use-short-lived-issue-branches.md"
+    },
+    {
+      "bytes": 444,
+      "path": "files/docs/adr/0005-use-python-3-11-and-uv.md",
+      "sha256": "c57cf7dba6ea0a69545fa736131eea731af05534d97646e09f44a4e69bb1c537",
+      "source_path": "docs/adr/0005-use-python-3-11-and-uv.md"
+    },
+    {
+      "bytes": 959,
+      "path": "files/docs/adr/0011-record-issue-work-bundles.md",
+      "sha256": "ffc5fb00c88ffdcd4a55f7d7b94ce3c130f8e90048360e4ae163d5b802e57b82",
+      "source_path": "docs/adr/0011-record-issue-work-bundles.md"
+    },
+    {
+      "bytes": 1857,
+      "path": "files/docs/agents/issue-tracker.md",
+      "sha256": "c967c2042c4dfdf4a5c1a4c0d1cc8e00e64aa060fbb8e497e5e3cd2463186a77",
+      "source_path": "docs/agents/issue-tracker.md"
+    },
+    {
+      "bytes": 20089,
+      "path": "files/docs/project/september-baseline.md",
+      "sha256": "257bb1738d223d3d2f1b9c45810f1826883b96eff6423d267302309f462607d9",
+      "source_path": "docs/project/september-baseline.md"
+    },
+    {
+      "bytes": 780,
+      "path": "files/pyproject.toml",
+      "sha256": "861ba1345031c9b6856afebb6aa6e46e837c701808f061ec78276d8ac93b60c7",
+      "source_path": "pyproject.toml"
+    },
+    {
+      "bytes": 69815,
+      "path": "files/requirements.txt",
+      "sha256": "34ac78c11a1a5ae5837160d088b4c88da1eed4170df09c92765e4c8681a32425",
+      "source_path": "requirements.txt"
+    },
+    {
+      "bytes": 66,
+      "path": "files/src/fall_ai_studio/__init__.py",
+      "sha256": "81137a051c615806c2c6e631271586daec12d8b3318f502913a13f29868de6e9",
+      "source_path": "src/fall_ai_studio/__init__.py"
+    },
+    {
+      "bytes": 9153,
+      "path": "files/src/fall_ai_studio/battle.py",
+      "sha256": "1fe19a87cff60b89dce8a0d41cd314e4d821cad91fbe8d6804b15a60d030d2f5",
+      "source_path": "src/fall_ai_studio/battle.py"
+    },
+    {
+      "bytes": 6547,
+      "path": "files/src/fall_ai_studio/catalog.py",
+      "sha256": "add7b80c0fe425f42264290ea7de23be3bcd6a7b4e75d3b377e88605c1d44d23",
+      "source_path": "src/fall_ai_studio/catalog.py"
+    },
+    {
+      "bytes": 7547,
+      "path": "files/src/fall_ai_studio/cli.py",
+      "sha256": "5204c75176642e52fa3e76b88a8febb146ea86cb067ac671fbb1d20dc65a3e20",
+      "source_path": "src/fall_ai_studio/cli.py"
+    },
+    {
+      "bytes": 60719,
+      "path": "files/src/fall_ai_studio/evidence.py",
+      "sha256": "ebd137b53381a27841a3f878e8a93370147fc66a18606c6f4b6873056449eba8",
+      "source_path": "src/fall_ai_studio/evidence.py"
+    },
+    {
+      "bytes": 12353,
+      "path": "files/tests/test_issue_work_bundle.py",
+      "sha256": "cde07aa140a126b63a91921cb7724b55774db369e9dbbf0729ee3defa6eecab7",
+      "source_path": "tests/test_issue_work_bundle.py"
+    },
+    {
+      "bytes": 262391,
+      "path": "files/uv.lock",
+      "sha256": "ba612ed07a2927fead1ccf2e170adc6b1c940b89f9a1bfdb0705aa8ee10d22c6",
+      "source_path": "uv.lock"
+    },
+    {
+      "bytes": 711581,
+      "path": "source.git.bundle",
+      "sha256": "ca098f21810583a0e14980bdd9807d64572ecdb53942ad790827214a7548c5bb"
+    },
+    {
+      "bytes": 2104,
+      "path": "verification.json",
+      "sha256": "01c1aa65a2bf4097d7c7062289adde0f6a2bd4b3ffbcf926ce3eab2b5753ff6d"
+    }
+  ],
+  "issue": {
+    "number": 1,
+    "title": "Establish reproducible Python project and automated checks",
+    "url": "https://github.com/ejparnell/example-project-fall-2026/issues/1"
+  },
+  "required_files": [
+    "README.md",
+    "files/.github/ISSUE_TEMPLATE/config.yml",
+    "files/.github/ISSUE_TEMPLATE/work-item.yml",
+    "files/.github/pull_request_template.md",
+    "files/.github/workflows/checks.yml",
+    "files/.python-version",
+    "files/README.md",
+    "files/artifacts/README.md",
+    "files/docs/adr/0003-use-short-lived-issue-branches.md",
+    "files/docs/adr/0005-use-python-3-11-and-uv.md",
+    "files/docs/adr/0011-record-issue-work-bundles.md",
+    "files/docs/agents/issue-tracker.md",
+    "files/docs/project/september-baseline.md",
+    "files/pyproject.toml",
+    "files/requirements.txt",
+    "files/src/fall_ai_studio/__init__.py",
+    "files/src/fall_ai_studio/battle.py",
+    "files/src/fall_ai_studio/catalog.py",
+    "files/src/fall_ai_studio/cli.py",
+    "files/src/fall_ai_studio/evidence.py",
+    "files/tests/test_issue_work_bundle.py",
+    "files/uv.lock",
+    "source.git.bundle",
+    "verification.json"
+  ],
+  "schema": "fall-ai-studio/issue-work-bundle/v1",
+  "source_commit": "b14ddda9d5b907bdaad2f04f9dad9261001da859"
+}
