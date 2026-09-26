@@ -51,14 +51,16 @@ A successful project will include:
 
 ### Project Milestones
 
-Use these Fall-term milestones to organize the team's work around the competition schedule:
+Create one native GitHub milestone just in time for the active monthly outcome. Create only
+`September Baseline` now; later rows remain roadmap plans until their month becomes active. The
+Project's `Target Cycle` iteration field carries weekly sequencing.
 
 | Month | Milestone | Key Activities |
 |---|---|---|
-| **September** | Competition Baseline & Submission | Inspect the card pool, set up the simulator, define the first deck concept, implement a reproducible baseline agent, run validation matches, complete both required category entries, and submit the strategy writeup by the competition deadline. |
-| **October** | Results Analysis & Experiment Audit | Analyze match logs and judging feedback as available, calculate matchup-level performance, document failed approaches, and verify that conclusions are supported by repeated trials. |
-| **November** | Strategy Refinement & Reproducibility | Compare the baseline with search or learning-based improvements, stress-test the agent across deck archetypes and initial states, and organize clean notebooks and experiment records. |
-| **December** | Portfolio Report & Final Presentation | Turn the competition work into a reproducible AI Studio artifact, finalize visualizations and limitations, and prepare the team's presentation and portfolio README. |
+| **September** | September Baseline | Freeze the Authoritative Source, implement a deterministic rule-based agent and Reference Deck, complete 20 real CABT matches, and independently verify a versioned Artifact Bundle. |
+| **October** | October Analysis | Analyze match logs and available feedback, calculate matchup-level performance, document failed approaches, and test whether conclusions survive repeated trials. |
+| **November** | November Refinement | Compare the baseline with an evidence-supported improvement, stress-test assumptions, and refine reproducibility evidence. |
+| **December** | December Portfolio | Turn the accepted work into a clear portfolio narrative, finalize visualizations and limitations, and prepare the final presentation. |
 
 ---
 
@@ -87,10 +89,14 @@ Use these Fall-term milestones to organize the team's work around the competitio
 
 **Evaluation Metrics:** Competition skill rating; overall and matchup-level win rate; uncertainty or confidence intervals; failed/invalid episode rate; repeated-run stability; and the Model, Deck, and Report rubric criteria  
 
-1. **Understand the card pool** — Load the English card metadata, validate its schema, and connect simulator card IDs to human-readable card information.
-2. **Define a deck concept and baseline** — State the intended game plan, choose cards that support it, and establish a simple baseline agent or policy.
-3. **Form and test hypotheses** — Change one strategic component at a time, run repeated matches, and record both performance and failure modes.
-4. **Evaluate robustness** — Compare results across matchups, initial states, and repeated runs so the strategy is not dependent on a narrow advantage.
+1. **Understand the card pool** — Load the frozen English export through the Catalog, validate
+   its schema and hash, and connect simulator card IDs to human-readable Card Records.
+2. **Establish the integration baseline** — Hold the official sample deck constant and compare the
+   transparent Baseline Agent with a first-legal Integration Control.
+3. **Produce trustworthy evidence** — Run 20 CABT matches from an identified commit, balance both
+   player positions, and retain structured results, provenance, interpretation, and limitations.
+4. **Evaluate robustness later** — Use the accepted September bundle to design October matchup and
+   failure analysis without retroactively tuning the baseline.
 5. **Refine the agent and deck together** — Use experimental evidence to improve both gameplay decisions and deck construction.
 6. **Document the reasoning** — Turn the experiment history into a clear report explaining the final model, deck, results, and limitations.
 
@@ -154,8 +160,9 @@ Start with a transparent heuristic policy and reliable experiment harness. Adopt
 
 1. **Review this overview** and identify questions about the competition, simulator, or evaluation rubric.
 2. **Read the [data guide](data/README.md)** and inspect the English card metadata.
-3. **Define an initial deck concept and agent baseline** before adding more complex strategy.
-4. **Create a GitHub Projects board** and break the work into card-pool analysis, agent development, experiments, deck refinement, and report preparation.
+3. **Run the [Getting Started](Getting-Started-for-Fellows.md) checks** before changing code or data.
+4. **Use the [September delivery plan](docs/project/september-baseline.md)** to create the milestone,
+   five dependent Issues, Project fields, and saved views.
 
 ---
 

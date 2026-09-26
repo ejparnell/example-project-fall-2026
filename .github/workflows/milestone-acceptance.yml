@@ -1,0 +1,62 @@
+name: September milestone acceptance
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_commit:
+        description: Full commit SHA from protected main to evaluate
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_commit }}
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          python-version: "3.11"
+      - name: Install the frozen environment
+        run: uv sync --frozen --all-groups
+      - name: Confirm the requested revision
+        shell: bash
+        env:
+          REQUESTED_SHA: ${{ inputs.source_commit }}
+        run: |
+          [[ "$REQUESTED_SHA" =~ ^[0-9a-fA-F]{40}$ ]]
+          git fetch origin main --no-tags
+          test "$(git rev-parse HEAD)" = "$REQUESTED_SHA"
+          git merge-base --is-ancestor "$REQUESTED_SHA" origin/main
+      - name: Run 20 CABT matches and assemble the candidate bundle
+        shell: bash
+        env:
+          WORKFLOW_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: >-
+          uv run fall-ai-studio acceptance-run
+          --bundle output/september-baseline-v1
+          --log output/acceptance.log
+          --matches 20
+          --commit-sha "$(git rev-parse HEAD)"
+          --run-id "${GITHUB_RUN_ID}"
+          --workflow-url "${WORKFLOW_URL}"
+      - name: Verify the candidate bundle independently
+        run: uv run fall-ai-studio verify-bundle output/september-baseline-v1
+      - name: Create the release archive
+        run: uv run python -m zipfile -c output/september-baseline-v1.zip output/september-baseline-v1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: september-baseline-v1
+          path: |
+            output/september-baseline-v1/
+            output/september-baseline-v1.zip
+            output/acceptance.log
+          if-no-files-found: error
+          retention-days: 90

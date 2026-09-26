@@ -1,0 +1,3 @@
+# Keep reusable logic out of notebooks
+
+The Example Project will place reusable data loading, validation, agent policy, evaluation, and manifest logic in an installable `src/` package with automated tests and repeatable command-line entry points. September includes one small executed `notebooks/01_card_catalog_exploration.ipynb` that imports the Catalog module and keeps outputs limited to narrative source, shape, missingness, action-count, anomaly, and visualization evidence. Notebooks will not own unique pipeline logic or acceptance-critical execution state; this trades a small amount of project scaffolding for reviewability, testability, and clean reruns outside a notebook kernel.

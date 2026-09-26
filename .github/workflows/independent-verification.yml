@@ -1,0 +1,61 @@
+name: September independent verification
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_commit:
+        description: Full protected-main commit SHA containing the approved bundle
+        required: true
+        type: string
+      bundle_path:
+        description: Committed Artifact Bundle to verify
+        required: true
+        default: artifacts/september-baseline-v1
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  verification:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_commit }}
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          python-version: "3.11"
+      - name: Install the frozen environment
+        run: uv sync --frozen --all-groups
+      - name: Confirm the requested revision is on protected main
+        shell: bash
+        env:
+          REQUESTED_SHA: ${{ inputs.source_commit }}
+        run: |
+          [[ "$REQUESTED_SHA" =~ ^[0-9a-fA-F]{40}$ ]]
+          git fetch origin main --no-tags
+          test "$(git rev-parse HEAD)" = "$REQUESTED_SHA"
+          git merge-base --is-ancestor "$REQUESTED_SHA" origin/main
+      - name: Verify the bundle and repeat the 20-match evaluation
+        shell: bash
+        env:
+          BUNDLE_PATH: ${{ inputs.bundle_path }}
+          WORKFLOW_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: >-
+          uv run fall-ai-studio independent-verify
+          --bundle "${BUNDLE_PATH}"
+          --output output/independent-verification.json
+          --matches 20
+          --commit-sha "$(git rev-parse HEAD)"
+          --run-id "${GITHUB_RUN_ID}"
+          --workflow-url "${WORKFLOW_URL}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: september-independent-verification
+          path: output/independent-verification.json
+          if-no-files-found: error
+          retention-days: 90

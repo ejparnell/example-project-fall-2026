@@ -1,0 +1,38 @@
+[build-system]
+requires = ["hatchling>=1.27,<2"]
+build-backend = "hatchling.build"
+
+[project]
+name = "fall-ai-studio-pokemon"
+version = "0.1.0"
+description = "Executable Fall AI Studio example for the Pokemon TCG AI Battle Challenge"
+readme = "README.md"
+requires-python = ">=3.11,<3.12"
+dependencies = [
+  "kaggle-environments==1.32.7",
+  "matplotlib>=3.10,<4",
+]
+
+[project.scripts]
+fall-ai-studio = "fall_ai_studio.cli:main"
+
+[dependency-groups]
+dev = [
+  "pytest>=8.4,<9",
+  "ruff>=0.13,<0.14",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/fall_ai_studio"]
+
+[tool.pytest.ini_options]
+addopts = "-ra"
+testpaths = ["tests"]
+
+[tool.ruff]
+exclude = ["notebooks"]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["B", "E", "F", "I", "UP"]
