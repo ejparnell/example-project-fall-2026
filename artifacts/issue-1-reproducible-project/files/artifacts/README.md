@@ -12,11 +12,23 @@ That bundle contains:
   verification, and limitations;
 - `files/`, preserving the exact repository-relative paths of the source, configuration,
   automation, documentation, and tests needed to review the Issue's result;
+- `source.git.bundle`, carrying the declared source commit and its reachable history so the file
+  snapshots can be checked even outside the original checkout;
 - `verification.json`, recording the source commit, environment, commands, and results; and
 - `manifest.json`, binding the Issue, source commit, inventory, byte sizes, and SHA-256 hashes.
 
 Run `uv run fall-ai-studio verify-bundle artifacts/issue-N-short-name` to recompute integrity. The
-bundle is an issue handoff and audit record; normal Git history remains the integration mechanism.
+command also compares each snapshot with the declared commit. An extracted bundle can recreate its
+verification environment and use its complete source snapshot:
+
+```bash
+cd issue-N-short-name/files
+uv sync --frozen --all-groups
+uv run fall-ai-studio verify-bundle ..
+```
+
+The bundle is an issue handoff and audit record; normal Git history remains the integration
+mechanism.
 
 ## Approved milestone bundles
 

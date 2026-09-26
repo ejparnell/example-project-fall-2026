@@ -102,7 +102,7 @@ truth.
 ### Artifacts and Bundle contribution
 
 The Issue Work Bundle at `artifacts/issue-1-reproducible-project/`, containing its report README,
-verification receipt, manifest, and exact snapshots of `pyproject.toml`, `uv.lock`,
+verification receipt, manifest, portable source history, and exact snapshots of `pyproject.toml`, `uv.lock`,
 `requirements.txt`, `.python-version`, `.github/workflows/checks.yml`, the repository templates,
 the public CLI entry point, and the decisions and tests needed to review this Issue. The later
 milestone Run Receipt records the resolved Python and dependency versions, while the milestone

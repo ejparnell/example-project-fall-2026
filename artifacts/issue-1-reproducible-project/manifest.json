@@ -1,11 +1,11 @@
 {
   "bundle_id": "issue-1-reproducible-project",
-  "created_at": "2026-09-26T21:50:40Z",
+  "created_at": "2026-09-26T22:12:20Z",
   "files": [
     {
-      "bytes": 7148,
+      "bytes": 9147,
       "path": "README.md",
-      "sha256": "8ec9ab29b8231ac870425c8dbd63014ade7bfe74f4972d61de1f64ce776e4066"
+      "sha256": "17d8110d6302d6a9dd758266df7ee3149ebb4c6f73761699159abe63cb1eddfc"
     },
     {
       "bytes": 46,
@@ -38,15 +38,15 @@
       "source_path": ".python-version"
     },
     {
-      "bytes": 7730,
+      "bytes": 7851,
       "path": "files/README.md",
-      "sha256": "276f6889894875f6ac49307e3ded91694bac51f2916023f0c8ac66930ae784e6",
+      "sha256": "57c2a8f48120b8aac7a91a0b3b2d0839555f4e766dc46e5fb21306b690cdbef2",
       "source_path": "README.md"
     },
     {
-      "bytes": 2619,
+      "bytes": 3056,
       "path": "files/artifacts/README.md",
-      "sha256": "7c8fd62e83f00bee8aad3411347d78c77b31b30e1d3da619eda80c78e9ccba35",
+      "sha256": "e6e1e64935e3ff1696d7d90cc657c7b0edd8518f01fcd200b7c8e8fdac97d2b6",
       "source_path": "artifacts/README.md"
     },
     {
@@ -62,9 +62,9 @@
       "source_path": "docs/adr/0005-use-python-3-11-and-uv.md"
     },
     {
-      "bytes": 726,
+      "bytes": 959,
       "path": "files/docs/adr/0011-record-issue-work-bundles.md",
-      "sha256": "2912aabbc173cc36140035fe2c821441b495b9896aed0e1d61b8bfd3eae15018",
+      "sha256": "ffc5fb00c88ffdcd4a55f7d7b94ce3c130f8e90048360e4ae163d5b802e57b82",
       "source_path": "docs/adr/0011-record-issue-work-bundles.md"
     },
     {
@@ -74,15 +74,15 @@
       "source_path": "docs/agents/issue-tracker.md"
     },
     {
-      "bytes": 20064,
+      "bytes": 20089,
       "path": "files/docs/project/september-baseline.md",
-      "sha256": "5878e1d60b8aee3ad56f85ff1c4247f58f6dffa2dd5272eb2554cefc109005a7",
+      "sha256": "257bb1738d223d3d2f1b9c45810f1826883b96eff6423d267302309f462607d9",
       "source_path": "docs/project/september-baseline.md"
     },
     {
-      "bytes": 767,
+      "bytes": 780,
       "path": "files/pyproject.toml",
-      "sha256": "c8daca9ffe007cd978c91bd912c083575d1c3204aa5f0a1a1af73dffc4e914e6",
+      "sha256": "861ba1345031c9b6856afebb6aa6e46e837c701808f061ec78276d8ac93b60c7",
       "source_path": "pyproject.toml"
     },
     {
@@ -98,21 +98,33 @@
       "source_path": "src/fall_ai_studio/__init__.py"
     },
     {
+      "bytes": 9153,
+      "path": "files/src/fall_ai_studio/battle.py",
+      "sha256": "1fe19a87cff60b89dce8a0d41cd314e4d821cad91fbe8d6804b15a60d030d2f5",
+      "source_path": "src/fall_ai_studio/battle.py"
+    },
+    {
+      "bytes": 6547,
+      "path": "files/src/fall_ai_studio/catalog.py",
+      "sha256": "add7b80c0fe425f42264290ea7de23be3bcd6a7b4e75d3b377e88605c1d44d23",
+      "source_path": "src/fall_ai_studio/catalog.py"
+    },
+    {
       "bytes": 7547,
       "path": "files/src/fall_ai_studio/cli.py",
       "sha256": "5204c75176642e52fa3e76b88a8febb146ea86cb067ac671fbb1d20dc65a3e20",
       "source_path": "src/fall_ai_studio/cli.py"
     },
     {
-      "bytes": 53687,
+      "bytes": 60038,
       "path": "files/src/fall_ai_studio/evidence.py",
-      "sha256": "6f6c42587cc2392d98c4c05d5252eb8c0b11bd8005033dc3c9365af9727deb3f",
+      "sha256": "6c6123832e5cd7b8d663f2385678e7bb0dee32cd0c8563548c7aaa93e601522e",
       "source_path": "src/fall_ai_studio/evidence.py"
     },
     {
-      "bytes": 5298,
+      "bytes": 9864,
       "path": "files/tests/test_issue_work_bundle.py",
-      "sha256": "2422dfdb0c6006c2f5164105e4d29ebd3ce3124a5eff0a55a04eeb7e3961c8a3",
+      "sha256": "7481646ebd0490e55cd96a39e6d1744b5f07629f25858717b5cd1c7f4a09152a",
       "source_path": "tests/test_issue_work_bundle.py"
     },
     {
@@ -122,9 +134,14 @@
       "source_path": "uv.lock"
     },
     {
-      "bytes": 1436,
+      "bytes": 353789,
+      "path": "source.git.bundle",
+      "sha256": "400a3c34c239945ddc0e881483089ce002a521d4b0c5a88260a4eec20ba88c46"
+    },
+    {
+      "bytes": 1983,
       "path": "verification.json",
-      "sha256": "3f58d71766a4820c036ddae0fd8e14c08a6cc39e06ce774e979daa0a411ea39d"
+      "sha256": "c4105abf70ea8aa424a10588aa4680042796ff5d85c9d5a0911539b93557e5f8"
     }
   ],
   "issue": {
@@ -149,12 +166,15 @@
     "files/pyproject.toml",
     "files/requirements.txt",
     "files/src/fall_ai_studio/__init__.py",
+    "files/src/fall_ai_studio/battle.py",
+    "files/src/fall_ai_studio/catalog.py",
     "files/src/fall_ai_studio/cli.py",
     "files/src/fall_ai_studio/evidence.py",
     "files/tests/test_issue_work_bundle.py",
     "files/uv.lock",
+    "source.git.bundle",
     "verification.json"
   ],
   "schema": "fall-ai-studio/issue-work-bundle/v1",
-  "source_commit": "8752a3e53c2417b1501b61844d100a14eb6586f1"
+  "source_commit": "276a0335e1a6ac5e86edcab67dc2636e10b66608"
 }

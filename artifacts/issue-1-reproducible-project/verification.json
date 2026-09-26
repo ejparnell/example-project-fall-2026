@@ -23,25 +23,35 @@
     {
       "command": "uv run pytest -q",
       "exit_code": 0,
-      "result": "43 tests passed in 3.91 seconds."
+      "result": "48 tests passed in 5.56 seconds."
     },
     {
       "command": "uv run fall-ai-studio --help",
       "exit_code": 0,
       "result": "The installed public CLI returned its command help successfully."
+    },
+    {
+      "command": "git bundle verify artifacts/issue-1-reproducible-project/source.git.bundle",
+      "exit_code": 0,
+      "result": "The portable bundle contained source commit 276a0335e1a6ac5e86edcab67dc2636e10b66608 and complete history."
+    },
+    {
+      "command": "For each manifest source_path, compare git show 276a0335e1a6ac5e86edcab67dc2636e10b66608:<source_path> with its files/ snapshot using cmp",
+      "exit_code": 0,
+      "result": "All 21 delivered file snapshots byte-matched the declared source commit."
     }
   ],
   "environment": {
     "checkout": "fresh local clone at detached source commit",
-    "platform": "macOS arm64",
+    "platform": "Darwin 25.6.0 arm64",
     "pytest": "8.4.2",
     "python": "3.11.13",
     "ruff": "0.13.3",
     "uv": "0.12.19"
   },
-  "finished_at": "2026-09-26T21:50:40Z",
+  "finished_at": "2026-09-26T22:12:20Z",
   "issue_number": 1,
   "schema": "fall-ai-studio/issue-verification/v1",
-  "source_commit": "8752a3e53c2417b1501b61844d100a14eb6586f1",
+  "source_commit": "276a0335e1a6ac5e86edcab67dc2636e10b66608",
   "status": "passed"
 }
