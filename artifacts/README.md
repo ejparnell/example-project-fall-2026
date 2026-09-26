@@ -19,12 +19,17 @@ That bundle contains:
 
 Run `uv run fall-ai-studio verify-bundle artifacts/issue-N-short-name` to recompute integrity. The
 command also compares each snapshot with the declared commit. An extracted bundle can recreate its
-verification environment and use its complete source snapshot:
+verification environment outside the sealed directory and use its complete source snapshot:
 
 ```bash
-cd issue-N-short-name/files
+ISSUE_WORK_BUNDLE="$(cd issue-N-short-name && pwd)"
+ISSUE_WORK_VENV="$(mktemp -d)/venv"
+export ISSUE_WORK_BUNDLE ISSUE_WORK_VENV
+export UV_PROJECT_ENVIRONMENT="$ISSUE_WORK_VENV"
+export PYTHONDONTWRITEBYTECODE=1
+cd "$ISSUE_WORK_BUNDLE/files"
 uv sync --frozen --all-groups
-uv run fall-ai-studio verify-bundle ..
+uv run fall-ai-studio verify-bundle "$ISSUE_WORK_BUNDLE"
 ```
 
 The bundle is an issue handoff and audit record; normal Git history remains the integration

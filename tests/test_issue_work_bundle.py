@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 
 from fall_ai_studio.evidence import (
+    ISSUE_1_REQUIRED_COMMANDS,
     ISSUE_VERIFICATION_SCHEMA,
     ISSUE_WORK_BUNDLE_SCHEMA,
     verify_bundle,
@@ -66,14 +67,7 @@ def issue_work_bundle(tmp_path: Path) -> Path:
         check=True,
     )
     (payload / "pyproject.toml").write_text(source_contents, encoding="utf-8")
-    commands = [
-        "uv sync --frozen --all-groups",
-        "uv export --frozen --no-dev --format requirements-txt --output-file requirements.txt",
-        "uv run ruff format --check .",
-        "uv run ruff check .",
-        "uv run pytest -q",
-        "uv run fall-ai-studio --help",
-    ]
+    commands = list(ISSUE_1_REQUIRED_COMMANDS)
     (bundle / "README.md").write_text(
         "# Issue #1 Work Bundle\n\n"
         "## Outcome\n\nThe reproducible project setup is complete.\n\n"
@@ -182,6 +176,31 @@ def test_issue_work_bundle_rejects_resealed_file_not_from_source_commit(
     assert any("does not match source commit" in error for error in result.errors)
 
 
+def test_issue_work_bundle_reports_missing_source_file_without_crashing(
+    issue_work_bundle: Path,
+) -> None:
+    (issue_work_bundle / "files/pyproject.toml").unlink()
+
+    result = verify_bundle(issue_work_bundle)
+
+    assert not result.valid
+    assert any("Missing required file: files/pyproject.toml" in error for error in result.errors)
+
+
+def test_issue_work_bundle_does_not_follow_symlinked_payload_directory(
+    issue_work_bundle: Path,
+) -> None:
+    payload = issue_work_bundle / "files"
+    outside = issue_work_bundle.parent / "outside-payload"
+    payload.rename(outside)
+    payload.symlink_to(outside, target_is_directory=True)
+
+    result = verify_bundle(issue_work_bundle)
+
+    assert not result.valid
+    assert any("symbolic link: files" in error for error in result.errors)
+
+
 def test_issue_work_bundle_rejects_resealed_readme_without_report_sections(
     issue_work_bundle: Path,
 ) -> None:
@@ -263,6 +282,35 @@ def test_issue_work_bundle_requires_reachable_source_commit(
     assert any("source commit is not available" in error for error in result.errors)
 
 
+def test_issue_work_bundle_accepts_unrelated_ambient_git_repository(
+    issue_work_bundle: Path,
+) -> None:
+    unrelated_repository = issue_work_bundle.parent
+    subprocess.run(["git", "init", "--quiet"], cwd=unrelated_repository, check=True)
+    subprocess.run(
+        ["git", "config", "user.email", "ambient-tests@example.com"],
+        cwd=unrelated_repository,
+        check=True,
+    )
+    subprocess.run(
+        ["git", "config", "user.name", "Ambient Tests"],
+        cwd=unrelated_repository,
+        check=True,
+    )
+    (unrelated_repository / "sentinel.txt").write_text("unrelated\n", encoding="utf-8")
+    subprocess.run(["git", "add", "sentinel.txt"], cwd=unrelated_repository, check=True)
+    subprocess.run(
+        ["git", "commit", "--quiet", "-m", "Add unrelated history"],
+        cwd=unrelated_repository,
+        check=True,
+    )
+
+    result = verify_bundle(issue_work_bundle)
+
+    assert result.valid
+    assert not result.errors
+
+
 def test_issue_work_bundle_requires_environment_and_issue_commands(
     issue_work_bundle: Path,
 ) -> None:
@@ -278,3 +326,25 @@ def test_issue_work_bundle_requires_environment_and_issue_commands(
     assert not result.valid
     assert any("environment" in error for error in result.errors)
     assert any("required Issue #1 command" in error for error in result.errors)
+
+
+def test_issue_work_bundle_rejects_blank_evidence_and_command_prefix_masquerade(
+    issue_work_bundle: Path,
+) -> None:
+    verification_path = issue_work_bundle / "verification.json"
+    verification = json.loads(verification_path.read_text(encoding="utf-8"))
+    verification["environment"]["checkout"] = "   "
+    pytest_command = next(
+        command for command in verification["commands"] if command["command"] == "uv run pytest -q"
+    )
+    pytest_command["command"] = "uv run pytest-this-is-not-pytest"
+    pytest_command["result"] = "   "
+    _write_json(verification_path, verification)
+    _reseal(issue_work_bundle, "verification.json")
+
+    result = verify_bundle(issue_work_bundle)
+
+    assert not result.valid
+    assert any("environment" in error for error in result.errors)
+    assert any("unsuccessful command result" in error for error in result.errors)
+    assert any("uv run pytest -q" in error for error in result.errors)
